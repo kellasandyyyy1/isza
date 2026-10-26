@@ -1,0 +1,296 @@
+@import "tailwindcss";
+
+/*
+  COLOR ROLES
+  --primary (coral) means "tap me". It is allowed ONLY for:
+    the primary Button fill, focus rings, inline text links and the "on" state of a Switch.
+  --primary is NEVER used for:
+    nav active state, period or phase data, dates, selected chips, selected segments or badges.
+  --period marks period days, the next period date and droplet icons. It always pairs with a
+    non-color cue: IconDroplet where there is room, filled (logged) versus dashed (predicted) in the calendar.
+  --phase-menstrual is only for the phase tint and the phase ring.
+  Selected states use --selected-bg with a 1px --line border and --selected-ink text.
+  Every value here is mirrored in src/lib/tokens.ts; tests/contrast.test.ts checks they match
+  and that each text and UI pair meets WCAG AA.
+*/
+
+/*
+  Design tokens. Components use these through Tailwind utilities only.
+  Contrast adjusted for WCAG AA: success, warning and danger have light and dark values,
+  phase-ovulatory (was #F0A33A) and phase-follicular (was #4FA387) were darkened to reach 3:1 as UI colors.
+*/
+
+:root {
+  --phase-menstrual: #E05A7A;
+  --phase-follicular: #48947A;
+  --phase-ovulatory: #BD730E;
+  --phase-luteal: #8B78C9;
+  /* Text on a filled --phase-menstrual circle, both modes. 4.84:1. */
+  --on-phase: #1F1A1C;
+  /* Icon color on a filled IconTile, both modes. The tile always has a text label beside it. */
+  --on-tile: #FFFFFF;
+  /* Highlight and depth for the glossy IconTile. */
+  --tile-light: #FFFFFF;
+  --tile-dark: #000000;
+}
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #FFFAF7;
+  --surface: #FFFFFF;
+  --surface-2: #F7F1EE;
+  --ink: #1F1A1C;
+  --ink-muted: #5E5559;
+  --line: #EDE5E1;
+  --primary: #C2335D;
+  --on-primary: #FFFFFF;
+  --period: #B3124F;
+  --on-period: #FFFFFF;
+  --selected-bg: var(--surface-2);
+  --selected-ink: var(--ink);
+  --ring-track: rgba(31, 26, 28, 0.12);
+  --success: #297C5E;
+  --warning: #966319;
+  --danger: #C53030;
+  --scrim: rgba(31, 26, 28, 0.4);
+  --edge: transparent;
+  --mascot-glow: none;
+  --elevation-card: 0 6px 24px rgba(31, 26, 28, 0.06);
+  --elevation-raised: 0 12px 32px rgba(31, 26, 28, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #141113;
+    --surface: #1E1A1C;
+    --surface-2: #2A2427;
+    --ink: #F5EFF1;
+    --ink-muted: #C2B8BD;
+    --line: #352E31;
+    --primary: #F06A92;
+    --on-primary: #1F1A1C;
+    --period: #E45D8C;
+    --on-period: #1F1A1C;
+    --selected-bg: var(--surface-2);
+    --selected-ink: var(--ink);
+    --ring-track: rgba(255, 255, 255, 0.16);
+    --success: #349E79;
+    --warning: #C07F20;
+    --danger: #DB6969;
+    --scrim: rgba(0, 0, 0, 0.6);
+    --edge: var(--line);
+    --mascot-glow: drop-shadow(0 0 12px rgba(255, 255, 255, 0.08));
+    --elevation-card: none;
+    --elevation-raised: none;
+  }
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #141113;
+  --surface: #1E1A1C;
+  --surface-2: #2A2427;
+  --ink: #F5EFF1;
+  --ink-muted: #C2B8BD;
+  --line: #352E31;
+  --primary: #F06A92;
+  --on-primary: #1F1A1C;
+  --period: #E45D8C;
+  --on-period: #1F1A1C;
+  --selected-bg: var(--surface-2);
+  --selected-ink: var(--ink);
+  --ring-track: rgba(255, 255, 255, 0.16);
+  --success: #349E79;
+  --warning: #C07F20;
+  --danger: #DB6969;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --edge: var(--line);
+  --mascot-glow: drop-shadow(0 0 12px rgba(255, 255, 255, 0.08));
+  --elevation-card: none;
+  --elevation-raised: none;
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-edge: var(--edge);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-period: var(--period);
+  --color-on-period: var(--on-period);
+  --color-period-tint: color-mix(in srgb, var(--period) 12%, transparent);
+  --color-selected-bg: var(--selected-bg);
+  --color-selected-ink: var(--selected-ink);
+  --color-scrim: var(--scrim);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-phase-menstrual: var(--phase-menstrual);
+  --color-phase-follicular: var(--phase-follicular);
+  --color-phase-ovulatory: var(--phase-ovulatory);
+  --color-phase-luteal: var(--phase-luteal);
+  --color-on-phase: var(--on-phase);
+  --color-phase-menstrual-tint: color-mix(in srgb, var(--phase-menstrual) 14%, transparent);
+  --color-phase-follicular-tint: color-mix(in srgb, var(--phase-follicular) 14%, transparent);
+  --color-phase-ovulatory-tint: color-mix(in srgb, var(--phase-ovulatory) 14%, transparent);
+  --color-phase-luteal-tint: color-mix(in srgb, var(--phase-luteal) 14%, transparent);
+  /* Flat phase tints, mixed over --surface: the Today hero. */
+  --color-phase-menstrual-surface: color-mix(in srgb, var(--phase-menstrual) 14%, var(--surface));
+  --color-phase-follicular-surface: color-mix(in srgb, var(--phase-follicular) 14%, var(--surface));
+  --color-phase-ovulatory-surface: color-mix(in srgb, var(--phase-ovulatory) 14%, var(--surface));
+  --color-phase-luteal-surface: color-mix(in srgb, var(--phase-luteal) 14%, var(--surface));
+  --color-ring-track: var(--ring-track);
+
+  --font-*: initial;
+  --font-sans: var(--font-plus-jakarta-sans);
+
+  /* Type scale. Nothing on screen is under 13px; scripts/check-font-sizes.mjs enforces it. */
+  --text-*: initial;
+  --text-display: 32px;
+  --text-display--line-height: 38px;
+  --text-display--font-weight: 700;
+  --text-h1: 24px;
+  --text-h1--line-height: 30px;
+  --text-h1--font-weight: 700;
+  --text-h2: 18px;
+  --text-h2--line-height: 24px;
+  --text-h2--font-weight: 600;
+  --text-body: 16px;
+  --text-body--line-height: 24px;
+  --text-body--font-weight: 400;
+  --text-body-strong: 16px;
+  --text-body-strong--line-height: 24px;
+  --text-body-strong--font-weight: 600;
+  --text-small: 14px;
+  --text-small--line-height: 20px;
+  --text-small--font-weight: 500;
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
+  --text-caption--font-weight: 500;
+
+  /* 4px base: 1 = 4, 2 = 8, 3 = 12, 4 = 16, 5 = 20, 6 = 24, 8 = 32, 10 = 40, 12 = 48 */
+  --spacing: 4px;
+
+  --container-content: 1200px;
+
+  --radius-*: initial;
+  --radius-input: 16px;
+  --radius-card: 24px;
+  --radius-sheet: 28px;
+  --radius-pill: 999px;
+
+  --shadow-*: initial;
+  --shadow-card: var(--elevation-card);
+  --shadow-raised: var(--elevation-raised);
+
+  --animate-page-in: fade-in 150ms ease-out;
+  --animate-fade-in: fade-in 200ms ease-out;
+  --animate-fade-out: fade-out 150ms ease-in;
+  --animate-panel-in: panel-in 250ms ease-out;
+  --animate-panel-out: panel-out 200ms ease-in;
+  --animate-toast-in: toast-in 200ms ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes panel-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+/*
+  IconTile: a glossy, softly lit tile behind a Tabler icon. Set --tile to the base color.
+  Gradient body, a top sheen, an inner shadow at the bottom and a colored drop shadow give the 3D look.
+*/
+@layer components {
+  .icon-tile {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 30%;
+    color: var(--on-tile);
+    background: linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--tile) 62%, var(--tile-light)) 0%,
+      var(--tile) 48%,
+      color-mix(in srgb, var(--tile) 74%, var(--tile-dark)) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--tile-light) 60%, transparent),
+      inset 0 -3px 5px color-mix(in srgb, var(--tile-dark) 22%, transparent),
+      0 6px 14px -5px color-mix(in srgb, var(--tile) 75%, transparent),
+      0 2px 3px -1px color-mix(in srgb, var(--tile-dark) 18%, transparent);
+  }
+
+  .icon-tile::before {
+    content: "";
+    position: absolute;
+    inset: 8% 14% 48%;
+    z-index: -1;
+    border-radius: 999px 999px 40% 40%;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--tile-light) 55%, transparent), transparent);
+  }
+
+  .icon-tile > svg {
+    filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--tile-dark) 30%, transparent));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
