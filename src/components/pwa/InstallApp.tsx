@@ -3,10 +3,11 @@
 import { IconDeviceMobile } from "@tabler/icons-react";
 import { Button } from "@/components/ui/Button";
 import { IOS_INSTALL_HINT } from "@/lib/pwa";
+import { IosInstallSteps } from "./IosInstallSteps";
 import { promptInstall, useCanInstall } from "./installPrompt";
 import { useIosHint } from "./useIosHint";
 
-// The button shows only after the browser fired beforeinstallprompt. iOS gets a one-line hint instead.
+// The button shows only after the browser fired beforeinstallprompt. iOS gets the Share menu steps instead.
 export function InstallApp() {
   const canInstall = useCanInstall();
   const iosHint = useIosHint();
@@ -18,6 +19,6 @@ export function InstallApp() {
       </Button>
     );
   }
-  if (iosHint) return <p className="text-body text-ink">{IOS_INSTALL_HINT}</p>;
+  if (iosHint) return <IosInstallSteps intro={IOS_INSTALL_HINT} />;
   return null;
 }

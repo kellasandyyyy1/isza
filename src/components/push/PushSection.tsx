@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { IosInstallSteps } from "@/components/pwa/IosInstallSteps";
 import { useIosHint } from "@/components/pwa/useIosHint";
 import { Switch } from "@/components/ui/Switch";
 import {
@@ -33,7 +34,7 @@ export function PushSection({ discreet }: { discreet: boolean }) {
 
   // Not set up on this server yet: no push section at all.
   if (!vapidPublicKey()) return null;
-  if (iosHint) return <p className="mb-3 rounded-input bg-surface-2 p-3 text-small text-ink">{IOS_PUSH_HINT}</p>;
+  if (iosHint) return <IosInstallSteps intro={IOS_PUSH_HINT} className="mb-3" />;
   if (!supported) return null;
 
   async function change(on: boolean) {
