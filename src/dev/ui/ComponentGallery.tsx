@@ -190,7 +190,6 @@ export function ComponentGallery() {
               pose={pose}
               size="sm"
               motion={(["idle", "cheer", "calm", "tired", "none", "idle"] as const)[index]}
-              phase={(["menstrual", "follicular", "ovulatory", "luteal", null, null] as const)[index]}
             />
           ))}
         </div>

@@ -44,8 +44,8 @@ describe("canContinue", () => {
     }
   });
 
-  it("never blocks the welcome, length and workout steps", () => {
-    for (const step of ["welcome", "cycle-length", "period-length", "workouts"] as const) {
+  it("never blocks the welcome, name, length and workout steps", () => {
+    for (const step of ["welcome", "name", "cycle-length", "period-length", "workouts"] as const) {
       expect(canContinue(step, initialOnboardingAnswers)).toBe(true);
     }
   });
@@ -75,6 +75,16 @@ describe("buildOnboardingRecords", () => {
       discreetMode: false,
       createdAt: CREATED_AT,
     });
+  });
+
+  it("saves the name trimmed, or null when it was skipped or left blank", () => {
+    expect(buildOnboardingRecords({ ...complete, name: "  Iszacycle " }, TODAY, CREATED_AT).profile.name).toBe("Iszacycle");
+    expect(buildOnboardingRecords({ ...complete, name: "   " }, TODAY, CREATED_AT).profile.name).toBeNull();
+    expect(buildOnboardingRecords({ ...complete, name: "" }, TODAY, CREATED_AT).profile.name).toBeNull();
+  });
+
+  it("rejects a name over 60 characters", () => {
+    expect(() => buildOnboardingRecords({ ...complete, name: "a".repeat(61) }, TODAY, CREATED_AT)).toThrow();
   });
 
   it("saves null for lengths marked not sure", () => {

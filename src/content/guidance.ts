@@ -50,6 +50,15 @@ export const guidance: Record<GuidanceKey, GuidanceEntry> = {
   },
 };
 
+// One optional line beside the water tally in the check-in details. Never an instruction, never a fix for a symptom.
+export const waterNote: Record<GuidanceKey, string | null> = {
+  menstrual: "Warm drinks and water are often welcome on these days.",
+  follicular: null,
+  ovulatory: "Worth keeping water nearby around harder sessions.",
+  luteal: "Some people find they want more water in this phase.",
+  neutral: null,
+};
+
 // One sentence per readiness band. Shown under the readiness pill on Today and on the Train tab.
 export const bandAdvice: Record<ReadinessBand, string> = {
   Go: "Good day to push. Try strength or intervals.",

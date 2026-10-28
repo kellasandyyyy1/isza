@@ -13,6 +13,8 @@ export function LoadDemoDataButton({ onLoaded }: { onLoaded: () => void }) {
   if (process.env.NODE_ENV !== "development") return null;
 
   async function load() {
+    // Also here, so production builds drop the seed import and its chunk entirely.
+    if (process.env.NODE_ENV !== "development") return;
     if (!window.confirm(CONFIRM_MESSAGE)) return;
     setLoading(true);
     try {

@@ -1,7 +1,7 @@
 import "server-only";
 import type { PushReminderType } from "@/lib/pushApi";
 
-// The only notification text Isza ever sends. Fixed here on the server: the client never sends text.
+// The only notification text Iszacycle ever sends. Fixed here on the server: the client never sends text.
 // None of it mentions periods, cycles or symptoms, in either mode.
 
 export interface PushMessage {
@@ -9,13 +9,14 @@ export interface PushMessage {
   body: string;
 }
 
-const NORMAL_TITLE = "Isza";
+const NORMAL_TITLE = "Iszacycle";
 const NORMAL_BODIES: Record<PushReminderType, string> = {
   "check-in": "Time for your daily check-in.",
   pill: "You have a reminder.",
   supplement: "You have a reminder.",
   custom: "You have a reminder.",
   planner: "Take a look at your planner today.",
+  water: "Time for a glass of water.",
 };
 const DISCREET: PushMessage = { title: "Reminder", body: "You have a new reminder." };
 

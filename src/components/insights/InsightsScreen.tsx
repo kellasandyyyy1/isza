@@ -6,11 +6,12 @@ import { CheckInSheet } from "@/components/checkin/CheckInSheet";
 import { LogPeriodSheet } from "@/components/today/LogPeriodSheet";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Toast } from "@/components/ui/Toast";
-import { useDismissedFlags, useLogs, usePeriods, useProfile, useWorkouts } from "@/db/hooks";
-import { completedCycles } from "@/lib/cycle";
+import { useDismissedFlags, useLogs, usePeriods, useProfile, useWaterLogs, useWorkouts } from "@/db/hooks";
+import { computeCycleStats } from "@/lib/cycle";
 import { cycleSummary, recentCycles } from "@/lib/cycleHistory";
-import { computeInsights } from "@/lib/insights";
+import { computeInsights, getCurrentCycleSummary, getInsightProgress } from "@/lib/insights";
 import { buildTodayView } from "@/lib/today";
+import { waterInsightLine } from "@/lib/water";
 import { CyclesTab } from "./CyclesTab";
 import { PatternsTab } from "./PatternsTab";
 import { ReportTab } from "./ReportTab";
@@ -25,6 +26,7 @@ export function InsightsScreen() {
   const logs = useLogs(ALL_DATES.from, ALL_DATES.to);
   const workouts = useWorkouts(ALL_DATES.from, ALL_DATES.to);
   const dismissedFlags = useDismissedFlags();
+  const waterLogs = useWaterLogs(ALL_DATES.from, ALL_DATES.to);
   const [tab, setTab] = useState<Tab>("patterns");
   const [sheet, setSheet] = useState<"check-in" | "log-period" | null>(null);
   const [toastOpen, setToastOpen] = useState(false);
@@ -42,8 +44,17 @@ export function InsightsScreen() {
   // Data only loads in the browser, so the clock is never read during prerendering.
   const now = new Date();
   const today = format(now, "yyyy-MM-dd");
-  const { flags } = buildTodayView({ profile, periods, logs, dismissedFlags, now });
+  const { flags, cycle, todayLog } = buildTodayView({ profile, periods, logs, dismissedFlags, now });
+  const { validLengths, avgCycleLength } = computeCycleStats(periods, profile);
   const logPeriod = () => setSheet("log-period");
+  // Days with at least one glass.
+  const waterLine =
+    waterLogs
+      ? waterInsightLine(
+          waterLogs.filter((log) => log.count > 0).map((log) => log.date),
+          today,
+        )
+      : null;
 
   // Radix Tabs only mounts the active panel.
   return (
@@ -61,8 +72,12 @@ export function InsightsScreen() {
               <PatternsTab
                 flags={flags}
                 insights={computeInsights({ periods, logs, workouts, profile })}
-                completedCycles={completedCycles(periods, profile).length}
+                progress={getInsightProgress(cycle, validLengths, avgCycleLength)}
+                cycle={cycle}
+                summary={getCurrentCycleSummary(logs, workouts, cycle)}
+                checkedInToday={todayLog !== null}
                 onCheckIn={() => setSheet("check-in")}
+                waterLine={waterLine}
               />
             ),
           },
@@ -71,7 +86,7 @@ export function InsightsScreen() {
             label: "Cycles",
             panel: (
               <CyclesTab
-                hasPeriods={periods.length > 0}
+                cycle={cycle}
                 summary={cycleSummary(periods, profile, today)}
                 cycles={recentCycles(periods, profile)}
                 onLogPeriod={logPeriod}
@@ -81,7 +96,7 @@ export function InsightsScreen() {
           {
             value: "report",
             label: "Report",
-            panel: <ReportTab periods={periods} profile={profile} logs={logs} today={today} onLogPeriod={logPeriod} />,
+            panel: <ReportTab periods={periods} profile={profile} logs={logs} today={today} />,
           },
         ]}
       />

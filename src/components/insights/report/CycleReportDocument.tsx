@@ -66,7 +66,7 @@ function createStyles(palette: ReportPalette) {
 export function CycleReportDocument({ report, palette }: { report: ReportData; palette: ReportPalette }) {
   const styles = createStyles(palette);
   return (
-    <Document title="Cycle summary" author="Isza" creator="Isza">
+    <Document title="Cycle summary" author="Iszacycle" creator="Iszacycle">
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>Cycle summary</Text>
         <Text style={[styles.muted, { marginTop: 4 }]}>

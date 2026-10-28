@@ -5,11 +5,14 @@ import { DEVICE_ID_KEY, PUSH_LAST_SYNC_KEY, getDeviceSetting, setDeviceSetting }
 import type { DailyLog, Period, Profile, Reminder } from "@/db/schema";
 import { computeCycleState, type CycleState } from "./cycle";
 import { MAX_PUSH_REMINDERS, type PushReminder, type PushReminderType, type SubscribeBody, type SyncBody } from "./pushApi";
+import { waterPushReminders, type WaterSettings } from "./water";
 
-export const PUSH_PREPROMPT = "Isza only sends reminders you set. Messages never mention your cycle.";
+// The title is the app name, which contains "cycle"; the message text never mentions it. Discreet mode hides the name.
+export const PUSH_PREPROMPT =
+  "Iszacycle only sends reminders you set. Message text never mentions your cycle. Discreet mode hides the app name.";
 export const PUSH_BLOCKED = "Notifications are blocked. Turn them on in your browser settings.";
 export const PUSH_OFFLINE = "Notifications will sync when you are back online.";
-export const IOS_PUSH_HINT = "Add Isza to your Home Screen to get notifications.";
+export const IOS_PUSH_HINT = "Add Iszacycle to your Home Screen to get notifications.";
 
 const PLANNER_DAYS_BEFORE = 2;
 const PLANNER_HOUR = 8;
@@ -63,17 +66,22 @@ export interface SyncInput {
   reminders: Reminder[];
   periods: Period[];
   logs: DailyLog[];
+  // Water reminders, while their switch is on. Only the times leave the device.
+  water: WaterSettings;
   now: Date;
 }
 
-export function buildSyncBody({ deviceId, timezone, profile, reminders, periods, logs, now }: SyncInput): SyncBody {
+export function buildSyncBody({ deviceId, timezone, profile, reminders, periods, logs, water, now }: SyncInput): SyncBody {
   const cycle = computeCycleState({ periods, profile, logs, today: format(now, "yyyy-MM-dd") });
   const planner = plannerPushReminder(cycle, now);
   return {
     deviceId,
     timezone,
     discreet: profile?.discreetMode ?? false,
-    reminders: [...(planner ? [planner] : []), ...recurringPushReminders(reminders)].slice(0, MAX_PUSH_REMINDERS),
+    reminders: [...(planner ? [planner] : []), ...recurringPushReminders(reminders), ...waterPushReminders(water)].slice(
+      0,
+      MAX_PUSH_REMINDERS,
+    ),
   };
 }
 

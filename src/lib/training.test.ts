@@ -3,7 +3,17 @@ import { generateDemoData } from "@/dev/seed";
 import type { Workout } from "@/db/schema";
 import { daysBetween } from "./cycle";
 import { computeInsights } from "./insights";
-import { newestFirst, stepDuration, trainingProgress, workoutFormSchema } from "./training";
+import {
+  lastWorkout,
+  newestFirst,
+  prefersLighter,
+  relativeDay,
+  sessionPrefill,
+  stepDuration,
+  trainingProgress,
+  weekDates,
+  workoutFormSchema,
+} from "./training";
 import { dayOf, makeWorkout, periodsFromLengths } from "./testFixtures";
 
 describe("workoutFormSchema", () => {
@@ -110,5 +120,54 @@ describe("trainingProgress with the demo data", () => {
     const top = progress.shares.filter((share) => share.total >= 4).sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0))[0];
     expect(best?.phase).toBe(top.phase);
     expect(best?.text).toContain(`(${top.percent}% of workouts felt strong)`);
+  });
+});
+
+describe("Plan tab helpers", () => {
+  it("prefills the sheet from the lower end of an effort range, within the form's ranges", () => {
+    expect(sessionPrefill(45, "7 to 8")).toEqual({ durationMin: 45, rpe: 7 });
+    expect(sessionPrefill(25, "8")).toEqual({ durationMin: 25, rpe: 8 });
+    expect(sessionPrefill(35, 5)).toEqual({ durationMin: 35, rpe: 5 });
+    // Full rest is 0 minutes at effort 0, below the form's minimum of 5 minutes and effort 1.
+    expect(sessionPrefill(0, "0")).toEqual({ durationMin: 5, rpe: 1 });
+    expect(sessionPrefill(0, 0)).toEqual({ durationMin: 5, rpe: 1 });
+  });
+
+  it("suggests something lighter only for strength and HIIT on a Rest day", () => {
+    expect(prefersLighter("Rest", "strength")).toBe(true);
+    expect(prefersLighter("Rest", "hiit")).toBe(true);
+    expect(prefersLighter("Rest", "cardio")).toBe(false);
+    expect(prefersLighter("Steady", "hiit")).toBe(false);
+    expect(prefersLighter("Go", "strength")).toBe(false);
+  });
+
+  it("lists Monday to Sunday of today's week", () => {
+    // October 25, 2026 is a Sunday, so its week starts on Monday, October 19.
+    expect(weekDates("2026-10-25")).toEqual([
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25",
+    ]);
+    expect(weekDates("2026-10-26")[0]).toBe("2026-10-26");
+  });
+
+  it("says how long ago a day was", () => {
+    expect(relativeDay("2026-10-25", "2026-10-25")).toBe("today");
+    expect(relativeDay("2026-10-24", "2026-10-25")).toBe("yesterday");
+    expect(relativeDay("2026-10-23", "2026-10-25")).toBe("2 days ago");
+    expect(relativeDay("2026-09-25", "2026-10-25")).toBe("30 days ago");
+  });
+
+  it("finds the newest workout up to today", () => {
+    const older = makeWorkout("2026-10-20", "normal");
+    const newer = makeWorkout("2026-10-24", "strong");
+    const future = makeWorkout("2026-10-27", "weak");
+    expect(lastWorkout([older, future, newer], "2026-10-25")).toBe(newer);
+    expect(lastWorkout([future], "2026-10-25")).toBeNull();
+    expect(lastWorkout([], "2026-10-25")).toBeNull();
   });
 });

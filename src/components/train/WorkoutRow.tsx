@@ -5,14 +5,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import type { Workout } from "@/db/schema";
 import type { Phase } from "@/lib/cycle";
 import { cx } from "@/lib/cx";
-import { workoutTypeInfo } from "./workoutConfig";
-
-const PHASE_DOTS: Record<Phase, string> = {
-  menstrual: "bg-phase-menstrual",
-  follicular: "bg-phase-follicular",
-  ovulatory: "bg-phase-ovulatory",
-  luteal: "bg-phase-luteal",
-};
+import { PHASE_DOTS, workoutTypeInfo } from "./workoutConfig";
 
 interface WorkoutRowProps {
   workout: Workout;

@@ -16,6 +16,7 @@ export function homeRouteFor(onboardingComplete: boolean): "/today" | "/onboardi
 
 export const ONBOARDING_STEPS = [
   "welcome",
+  "name",
   "goals",
   "last-period",
   "cycle-length",
@@ -31,12 +32,16 @@ export const CYCLE_LENGTH_RANGE = { min: 21, max: 45, initial: 28 } as const;
 export const PERIOD_LENGTH_RANGE = { min: 2, max: 10, initial: 5 } as const;
 // Used for the first period's end date when the period length is "Not sure".
 const FALLBACK_PERIOD_LENGTH = 5;
+// The same limit as the profile's name.
+export const NAME_MAX_LENGTH = 60;
 // The calendar offers today and the 59 days before it.
 export const LAST_PERIOD_WINDOW_DAYS = 60;
 
 // Answers live in component state until the last screen. Lengths keep their stepper value
 // while "Not sure" is on, so turning it off restores the number.
 export const onboardingAnswersSchema = z.object({
+  // Optional: empty means no name.
+  name: z.string().max(NAME_MAX_LENGTH),
   goals: z.array(goalSchema),
   lastPeriodStart: isoDateSchema.nullable(),
   cycleLength: z.number().int().min(CYCLE_LENGTH_RANGE.min).max(CYCLE_LENGTH_RANGE.max),
@@ -51,6 +56,7 @@ export const onboardingAnswersSchema = z.object({
 export type OnboardingAnswers = z.infer<typeof onboardingAnswersSchema>;
 
 export const initialOnboardingAnswers: OnboardingAnswers = {
+  name: "",
   goals: [],
   lastPeriodStart: null,
   cycleLength: CYCLE_LENGTH_RANGE.initial,
@@ -105,7 +111,7 @@ export function buildOnboardingRecords(
   const periodLength = valid.periodLengthUnsure ? null : valid.periodLength;
   const profile: Profile = {
     id: "me",
-    name: null,
+    name: valid.name.trim() === "" ? null : valid.name.trim(),
     goals: valid.goals,
     contraception: valid.contraception,
     typicalCycleLength: valid.cycleLengthUnsure ? null : valid.cycleLength,

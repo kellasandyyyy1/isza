@@ -11,7 +11,7 @@ export function MarkerSwatch({ kind }: { kind: MarkerKind }) {
           "rounded-pill",
           kind === "logged" && "size-3.5 bg-period",
           kind === "predicted" && "size-3.5 border-2 border-dashed border-period",
-          kind === "fertile" && "size-1.5 bg-phase-ovulatory",
+          kind === "fertile" && "h-3 w-4 bg-fertile-band",
           kind === "check-in" && "size-1 bg-ink-muted",
           kind === "today" && "size-3.5 ring-2 ring-ink",
         )}

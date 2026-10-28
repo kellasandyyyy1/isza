@@ -14,7 +14,7 @@ export function Sidebar() {
       aria-label="Main"
       className="hidden w-60 flex-col border-r border-line bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:flex"
     >
-      <p className="px-7 pt-6 pb-8 text-h1 text-ink">isza</p>
+      <p className="px-7 pt-6 pb-8 text-h1 text-ink">iszacycle</p>
       <ul className="flex flex-col gap-1 px-4">
         {navItems.map(({ href, label, icon: ItemIcon }) => {
           const active = isActiveRoute(pathname, href);

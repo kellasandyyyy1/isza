@@ -6,7 +6,7 @@ export function CheckInCard(props: { logged: boolean; secondary: boolean; onOpen
   return (
     <Card className="hidden flex-col items-start gap-3 lg:flex">
       <h2 className="text-h2 text-ink">Daily check-in</h2>
-      <p className="text-body text-ink-muted">About 20 seconds. It helps Isza learn your patterns.</p>
+      <p className="text-body text-ink-muted">About 20 seconds. It helps Iszacycle learn your patterns.</p>
       <CheckInButton {...props} />
     </Card>
   );

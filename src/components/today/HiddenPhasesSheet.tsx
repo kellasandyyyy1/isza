@@ -1,7 +1,7 @@
 import { ResponsiveSheet } from "@/components/ui/ResponsiveSheet";
 
 const REASONS = {
-  hormonal: "Hormonal contraception changes your natural cycle, so Isza does not show phases or ovulation.",
+  hormonal: "Hormonal contraception changes your natural cycle, so Iszacycle does not show phases or ovulation.",
   irregular: "Your cycle lengths vary a lot, so phase predictions would not be reliable yet.",
 };
 

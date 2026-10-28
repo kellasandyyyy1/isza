@@ -17,7 +17,8 @@ export type ColorTokenName =
   | "period"
   | "on-period"
   | "selected-bg"
-  | "selected-ink";
+  | "selected-ink"
+  | "fertile-ink";
 
 export type ThemeName = "light" | "dark";
 
@@ -37,6 +38,7 @@ export const COLOR_TOKENS: Record<ThemeName, Record<ColorTokenName, string>> = {
     // var(--surface-2) and var(--ink) in globals.css.
     "selected-bg": "#F7F1EE",
     "selected-ink": "#1F1A1C",
+    "fertile-ink": "#6B3F05",
   },
   dark: {
     bg: "#141113",
@@ -50,6 +52,7 @@ export const COLOR_TOKENS: Record<ThemeName, Record<ColorTokenName, string>> = {
     "on-period": "#1F1A1C",
     "selected-bg": "#2A2427",
     "selected-ink": "#F5EFF1",
+    "fertile-ink": "#FFD089",
   },
 };
 
@@ -61,6 +64,9 @@ export const PHASE_COLORS = {
   luteal: "#8B78C9",
 } as const;
 export const PHASE_TINT_PERCENT = 14;
+
+// The calendar's fertile band: this share of --phase-ovulatory over the page, stronger on dark.
+export const FERTILE_BAND_PERCENT: Record<ThemeName, number> = { light: 18, dark: 22 };
 
 // Tint backgrounds sit on these, so muted text is checked on each tint over each of them.
 export const TINT_BASES: ColorTokenName[] = ["bg", "surface"];

@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import { generateDemoData } from "@/dev/seed";
 import {
   buildTodayView,
-  cycleProgressPercent,
+  formatLatePeriod,
   formatNextPeriod,
+  formatPeriodBasis,
   formatPeriodRange,
+  LATE_DOCTOR_NOTE,
+  LATE_NOTE,
+  latePeriodNotes,
   greetingFor,
   periodQuickAction,
 } from "./today";
@@ -116,10 +120,26 @@ describe("periodQuickAction", () => {
   });
 });
 
-describe("cycleProgressPercent", () => {
-  it("is the cycle day as a share of the average length, capped at 100", () => {
-    expect(cycleProgressPercent(14, 28)).toBe(50);
-    expect(cycleProgressPercent(40, 28)).toBe(100);
+describe("late period copy", () => {
+  it("counts days late in words, with the singular for 1", () => {
+    expect(formatLatePeriod(1)).toBe("Period is 1 day late");
+    expect(formatLatePeriod(10)).toBe("Period is 10 days late");
+  });
+
+  it("adds the doctor line from 45 days late", () => {
+    expect(latePeriodNotes(44)).toEqual([LATE_NOTE]);
+    expect(latePeriodNotes(45)).toEqual([LATE_NOTE, LATE_DOCTOR_NOTE]);
+    expect(LATE_DOCTOR_NOTE).toBe("If your period has not come and you are not sure why, consider talking to a doctor.");
+  });
+});
+
+describe("formatPeriodBasis", () => {
+  it("names the cycles behind the average, or says it is an estimate", () => {
+    expect(formatPeriodBasis(0)).toBe("estimate, keep logging");
+    expect(formatPeriodBasis(1)).toBe("estimate, keep logging");
+    expect(formatPeriodBasis(2)).toBe("based on 2 cycles");
+    // The average uses the last 6 cycles at most.
+    expect(formatPeriodBasis(9)).toBe("based on 6 cycles");
   });
 });
 
@@ -130,7 +150,9 @@ describe("buildTodayView", () => {
       today: "2026-10-25",
       greeting: "Good morning",
       dateLabel: "Sun, Oct 25",
-      ringPercent: null,
+      nextPeriodBasis: null,
+      lateDays: null,
+      lateNotes: [],
       nextPeriodText: null,
       nextPeriodRange: null,
       periodAction: null,
@@ -146,7 +168,9 @@ describe("buildTodayView", () => {
     const view = buildTodayView({ ...empty, profile: demo.profile, periods: demo.periods, logs: demo.dailyLogs });
     expect(view.cycle).toMatchObject({ mode: "standard", cycleDay: 11, phase: "follicular" });
     expect(view.guidanceKey).toBe("follicular");
-    expect(view.ringPercent).toBe(Math.round((11 / 28.5) * 100));
+    // Several logged cycles: "of 29" shows on the ring, and the range names how many cycles it is based on.
+    expect(view.cycle).toMatchObject({ cycleLengthIsEstimate: false, avgCycleLength: 28.5, periodLoggedDays: 5 });
+    expect(view.nextPeriodBasis).toMatch(/^based on \d cycles$/);
     // Day 11 of a 28.5-day average: the next period starts in about 18 days.
     expect(view.nextPeriodText).toBe("Period in about 3 weeks");
     expect(view.nextPeriodRange).toMatch(/^Nov \d+ to \d+$/);
@@ -160,7 +184,9 @@ describe("buildTodayView", () => {
     const view = buildTodayView({ ...empty, periods, profile: makeProfile({ contraception: "hormonal" }) });
     expect(view.cycle).toMatchObject({ mode: "hormonal", cycleDay: 9, phase: null });
     expect(view.guidanceKey).toBe("neutral");
-    expect(view.ringPercent).toBe(32);
+    // One period: 28 is a default, so "of 28" stays hidden on the ring.
+    expect(view.cycle).toMatchObject({ cycleLengthIsEstimate: true, avgCycleLength: 28, ovulationDay: null });
+    expect(view.nextPeriodBasis).toBe("estimate, keep logging");
   });
 
   it("hides phases for irregular cycles", () => {
@@ -185,6 +211,30 @@ describe("buildTodayView", () => {
     });
     expect(discreet.periodPrep).toBe("Plan ahead: check your supplies.");
     expect(buildTodayView({ ...empty, periods, profile, now: new Date(2026, 9, 27, 9) }).periodPrep).toBeNull();
+  });
+
+  it("shows the late state at 1, 10 and 50 days late, counted from the latest predicted day", () => {
+    // Started Aug 1 with a 28-day default: predicted Aug 29, range Aug 26 to Sep 1.
+    const periods = [{ id: 1, startDate: "2026-08-01", endDate: "2026-08-05" }];
+    const on = (date: Date) => buildTodayView({ ...empty, periods, now: date });
+
+    const oneDay = on(new Date(2026, 8, 2, 9));
+    expect(oneDay).toMatchObject({ lateDays: 1, nextPeriodText: "Period is 1 day late", nextPeriodRange: null });
+    expect(oneDay.lateNotes).toEqual([LATE_NOTE]);
+    expect(oneDay.periodAction).toEqual({ kind: "start" });
+
+    expect(on(new Date(2026, 8, 11, 9))).toMatchObject({ lateDays: 10, nextPeriodText: "Period is 10 days late" });
+
+    const fifty = on(new Date(2026, 9, 21, 9));
+    expect(fifty).toMatchObject({ lateDays: 50, nextPeriodText: "Period is 50 days late", nextPeriodBasis: null });
+    expect(fifty.lateNotes).toEqual([LATE_NOTE, LATE_DOCTOR_NOTE]);
+    expect(fifty.periodAction).toEqual({ kind: "start" });
+  });
+
+  it("is not late on the latest predicted day", () => {
+    const periods = [{ id: 1, startDate: "2026-08-01", endDate: "2026-08-05" }];
+    const view = buildTodayView({ ...empty, periods, now: new Date(2026, 8, 1, 9) });
+    expect(view).toMatchObject({ lateDays: null, lateNotes: [] });
   });
 
   it("lists flags that are not dismissed", () => {

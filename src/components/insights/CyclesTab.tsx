@@ -1,29 +1,45 @@
 import { IconCalendarStats } from "@tabler/icons-react";
+import { format, parseISO } from "date-fns";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import type { CycleState } from "@/lib/cycle";
 import type { CycleBar, CycleSummary } from "@/lib/cycleHistory";
 import { CycleBarsChart } from "./CycleBarsChart";
 import { CycleStat } from "./CycleStat";
 
 const CONFIDENCE_WORDS: Record<CycleSummary["confidence"], string> = { high: "High", medium: "Medium", low: "Low" };
+// The history needs this many completed cycles, the same as the first patterns.
+const MIN_CYCLES = 2;
 
 interface CyclesTabProps {
-  hasPeriods: boolean;
+  cycle: CycleState;
   summary: CycleSummary;
   cycles: CycleBar[];
   onLogPeriod: () => void;
 }
 
-export function CyclesTab({ hasPeriods, summary, cycles, onLogPeriod }: CyclesTabProps) {
-  if (!hasPeriods) {
+export function CyclesTab({ cycle, summary, cycles, onLogPeriod }: CyclesTabProps) {
+  if (cycles.length < MIN_CYCLES) {
+    const { cycleStart, cycleDay } = cycle;
     return (
-      <EmptyState
-        icon={IconCalendarStats}
-        mascot={{ pose: "insights" }}
-        title="No cycles yet"
-        text="Log your periods to see your cycle history."
-        action={{ label: "Log period", onClick: onLogPeriod }}
-      />
+      <div className="flex flex-col gap-4">
+        <EmptyState
+          icon={IconCalendarStats}
+          mascot={{ pose: "insights", size: "sm" }}
+          title="Cycle history"
+          text="Your cycle history appears after your second period."
+          // Without a period there is nothing to show yet, so the one way forward is logging one.
+          action={cycleStart === null ? { label: "Log period", onClick: onLogPeriod } : undefined}
+        />
+        {cycleStart !== null && cycleDay !== null && (
+          <Card aria-label="Current cycle" role="region" className="flex items-center justify-between gap-3">
+            <span className="text-body-strong text-ink">Current cycle</span>
+            <span className="text-small text-ink-muted">
+              Started {format(parseISO(cycleStart), "MMM d")} · day {cycleDay}
+            </span>
+          </Card>
+        )}
+      </div>
     );
   }
 
@@ -39,15 +55,9 @@ export function CyclesTab({ hasPeriods, summary, cycles, onLogPeriod }: CyclesTa
         <CycleStat label="Confidence" value={CONFIDENCE_WORDS[summary.confidence]} />
       </dl>
       <Card className="flex flex-col gap-3">
-        <h2 className="text-h2 text-ink">Last {Math.max(cycles.length, 1)} cycles</h2>
-        {cycles.length === 0 ? (
-          <p className="text-body text-ink-muted">Your first full cycle shows here once your next period starts.</p>
-        ) : (
-          <>
-            <CycleBarsChart cycles={cycles} />
-            <p className="text-small text-ink-muted">The colored start of each bar is the period.</p>
-          </>
-        )}
+        <h2 className="text-h2 text-ink">Last {cycles.length} cycles</h2>
+        <CycleBarsChart cycles={cycles} />
+        <p className="text-small text-ink-muted">The colored start of each bar is the period.</p>
       </Card>
     </div>
   );

@@ -12,6 +12,7 @@ export async function completeOnboarding(page: Page, options: OnboardingOptions 
   const next = page.getByRole("button", { name: "Next", exact: true });
   await page.goto("/onboarding");
   await page.getByRole("button", { name: "Get started" }).click();
+  await page.getByRole("button", { name: "Skip" }).click();
   await page.getByRole("button", { name: "Train smarter" }).click();
   await next.click();
   if (options.periodStartsToday) {
@@ -28,16 +29,42 @@ export async function completeOnboarding(page: Page, options: OnboardingOptions 
   await next.click();
   await next.click();
   await page.getByLabel("I understand").check();
-  await page.getByRole("button", { name: "Start using Isza" }).click();
+  await page.getByRole("button", { name: "Start using Iszacycle" }).click();
   await expect(page).toHaveURL(/\/today$/);
 }
 
-// Replaces all data with the demo data, using the development-only button on /dev/ui.
+// Replaces all data with the demo data from src/dev/seed.ts, written straight into IndexedDB. /dev/ui and its
+// "Load demo data" button do not exist in production builds, and the e2e tests run against one, so the seed stays
+// in the test code and never ships.
 export async function loadDemoData(page: Page) {
-  page.once("dialog", (dialog) => void dialog.accept());
-  await page.goto("/dev/ui");
-  await page.getByRole("button", { name: "Load demo data" }).click();
-  await expect(page.getByText("Demo data loaded")).toBeVisible();
+  const { generateDemoData } = await import("../../src/dev/seed");
+  // The app creates the database on its first load; a new device lands on onboarding.
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/(onboarding|today)$/);
+  // Dated from the page's clock, which a test may have set, as the in-app button did.
+  const now = new Date(await page.evaluate(() => Date.now()));
+  const { version: _version, profile, ...tables } = generateDemoData(now);
+  void _version;
+  await page.evaluate(
+    ({ profile, tables }) =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open("isza");
+        request.onsuccess = () => {
+          const database = request.result;
+          const tx = database.transaction(Array.from(database.objectStoreNames), "readwrite");
+          for (const name of Array.from(database.objectStoreNames)) tx.objectStore(name).clear();
+          if (profile) tx.objectStore("profile").put(profile);
+          for (const [name, rows] of Object.entries(tables)) for (const row of rows) tx.objectStore(name).put(row);
+          tx.oncomplete = () => {
+            database.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+        request.onerror = () => reject(request.error);
+      }),
+    { profile, tables },
+  );
 }
 
 // Writes records straight into an IndexedDB store, for states the UI cannot create yet.

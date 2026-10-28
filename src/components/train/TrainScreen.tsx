@@ -9,6 +9,7 @@ import { buildCalendarContext } from "@/lib/calendar";
 import { computeInsights } from "@/lib/insights";
 import { buildTodayView } from "@/lib/today";
 import { trainingProgress } from "@/lib/training";
+import type { WorkoutPrefill } from "./LogWorkoutForm";
 import { LogWorkoutSheet } from "./LogWorkoutSheet";
 import { ProgressTab } from "./ProgressTab";
 import { TrainTodayTab } from "./TrainTodayTab";
@@ -16,15 +17,17 @@ import { WorkoutLogTab } from "./WorkoutLogTab";
 
 const ALL_DATES = { from: "0000-01-01", to: "9999-12-31" };
 
-type Tab = "today" | "log" | "progress";
+type Tab = "plan" | "log" | "progress";
 
 export function TrainScreen() {
   const profile = useProfile();
   const periods = usePeriods();
   const logs = useLogs(ALL_DATES.from, ALL_DATES.to);
   const workouts = useWorkouts(ALL_DATES.from, ALL_DATES.to);
-  const [tab, setTab] = useState<Tab>("today");
+  const [tab, setTab] = useState<Tab>("plan");
   const [logOpen, setLogOpen] = useState(false);
+  // Set by Start this workout on the Plan tab. The other tabs open the sheet empty.
+  const [prefill, setPrefill] = useState<WorkoutPrefill | null>(null);
   const [toastOpen, setToastOpen] = useState(false);
   const [workoutCheer, setWorkoutCheer] = useState(0);
 
@@ -36,7 +39,11 @@ export function TrainScreen() {
   const now = new Date();
   const today = format(now, "yyyy-MM-dd");
   const view = buildTodayView({ profile, periods, logs, dismissedFlags: [], now });
-  const openLog = () => setLogOpen(true);
+  const context = buildCalendarContext({ periods, profile, logs, workouts, today });
+  const openLog = (start: WorkoutPrefill | null = null) => {
+    setPrefill(start);
+    setLogOpen(true);
+  };
   const bestWindow =
     computeInsights({ periods, logs, workouts, profile }).find((insight) => insight.kind === "best-training-window") ?? null;
 
@@ -50,27 +57,16 @@ export function TrainScreen() {
         className="flex min-h-0 flex-1 flex-col [&>[role=tabpanel]]:min-h-0 [&>[role=tabpanel]]:flex-1"
         options={[
           {
-            value: "today",
-            label: "Today",
+            value: "plan",
+            label: "Plan",
             panel: (
-              <TrainTodayTab
-                view={view}
-                todaysWorkouts={workouts.filter((workout) => workout.date === today)}
-                onLogWorkout={openLog}
-                cheerKey={workoutCheer}
-              />
+              <TrainTodayTab view={view} context={context} workouts={workouts} onStart={openLog} cheerKey={workoutCheer} />
             ),
           },
           {
             value: "log",
             label: "Log",
-            panel: (
-              <WorkoutLogTab
-                workouts={workouts}
-                context={buildCalendarContext({ periods, profile, logs, workouts, today })}
-                onLogWorkout={openLog}
-              />
-            ),
+            panel: <WorkoutLogTab workouts={workouts} context={context} onLogWorkout={() => openLog()} />,
           },
           {
             value: "progress",
@@ -79,7 +75,7 @@ export function TrainScreen() {
               <ProgressTab
                 progress={trainingProgress(periods, workouts, profile)}
                 bestWindow={bestWindow}
-                onLogWorkout={openLog}
+                onLogWorkout={() => openLog()}
               />
             ),
           },
@@ -87,6 +83,7 @@ export function TrainScreen() {
       />
       <LogWorkoutSheet
         date={today}
+        prefill={prefill}
         open={logOpen}
         onOpenChange={setLogOpen}
         onSaved={() => {

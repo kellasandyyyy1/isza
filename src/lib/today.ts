@@ -1,8 +1,15 @@
 import { format, parseISO } from "date-fns";
 import type { GuidanceKey } from "@/content/guidance";
 import type { DailyLog, DismissedFlag, Period, Profile } from "@/db/schema";
-import { clamp } from "./clamp";
-import { computeCycleState, computeCycleStats, daysBetween, shiftDate, sortPeriods, type CycleState } from "./cycle";
+import {
+  computeCycleState,
+  computeCycleStats,
+  daysBetween,
+  HISTORY_SIZE,
+  shiftDate,
+  sortPeriods,
+  type CycleState,
+} from "./cycle";
 import { computeFlags, type HealthFlag } from "./flags";
 import { computeReadiness, type Readiness, type ReadinessBand } from "./readiness";
 import { periodPrepText } from "./reminders";
@@ -27,11 +34,15 @@ export interface TodayView {
   readiness: Readiness;
   mood: TodayMood;
   flags: HealthFlag[];
-  // Ring value: cycle day as a share of the average cycle length. Null without data.
-  ringPercent: number | null;
-  // "Period in about 5 days", with the date range as a caption under it.
+  // "Period in about 5 days" or "Period is 3 days late", with the date range as a caption under it.
   nextPeriodText: string | null;
   nextPeriodRange: string | null;
+  // How sure the range is, in plain words: "based on 4 cycles" or "estimate, keep logging".
+  nextPeriodBasis: string | null;
+  // Days past the latest predicted start, while the period is late. Null otherwise.
+  lateDays: number | null;
+  // Caption lines under the late line: facts only, never an alert.
+  lateNotes: string[];
   // The one-tap period pill. Null when it should not show.
   periodAction: PeriodQuickAction | null;
   guidanceKey: GuidanceKey;
@@ -77,7 +88,37 @@ export function formatPeriodRange(nextPeriod: CycleState["nextPeriod"]): string 
   return `${format(earliest, "MMM d")} to ${format(latest, sameMonth ? "d" : "MMM d")}`;
 }
 
+// From this many days late, the late state adds the doctor line.
+export const LATE_DOCTOR_DAYS = 45;
+export const LATE_NOTE = "Cycles vary for many reasons. You can log it as soon as it starts.";
+export const LATE_DOCTOR_NOTE = "If your period has not come and you are not sure why, consider talking to a doctor.";
+
+// The late line. Days count from the latest day of the predicted range, the day after which it is late.
+export function formatLatePeriod(days: number): string {
+  return days === 1 ? "Period is 1 day late" : `Period is ${days} days late`;
+}
+
+export function latePeriodNotes(days: number): string[] {
+  return days >= LATE_DOCTOR_DAYS ? [LATE_NOTE, LATE_DOCTOR_NOTE] : [LATE_NOTE];
+}
+
+// The confidence caption after the range. Counts the cycles the average uses, at most the last 6.
+export function formatPeriodBasis(validLengthCount: number): string {
+  if (validLengthCount < 2) return "estimate, keep logging";
+  return `based on ${Math.min(validLengthCount, HISTORY_SIZE)} cycles`;
+}
+
 export type PeriodQuickAction = { kind: "start" } | { kind: "end"; periodId: number };
+
+// How much room Today leaves the plan cards: "roomy" for full cards, "light" for one extra row (full cards on tall
+// phones, title rows on shorter ones), "heavy" for two or more, where only title rows fit without scrolling.
+export type PlanCardRoom = "roomy" | "light" | "heavy";
+
+// Extra rows are the period pill, the health flag chip, the late notes, the low supply chip and the prep card.
+export function planCardRoom(extraRows: number): PlanCardRoom {
+  if (extraRows <= 0) return "roomy";
+  return extraRows === 1 ? "light" : "heavy";
+}
 
 const END_PROMPT_AFTER_DAYS = 3;
 
@@ -94,10 +135,6 @@ export function periodQuickAction(periods: Period[], cycle: CycleState, today: s
   return due ? { kind: "start" } : null;
 }
 
-export function cycleProgressPercent(cycleDay: number, avgCycleLength: number): number {
-  return Math.round(clamp((cycleDay / avgCycleLength) * 100, 0, 100));
-}
-
 export function buildTodayView({ profile, periods, logs, dismissedFlags, now }: TodayInput): TodayView {
   const today = format(now, "yyyy-MM-dd");
   const yesterday = shiftDate(today, -1);
@@ -109,7 +146,8 @@ export function buildTodayView({ profile, periods, logs, dismissedFlags, now }: 
     yesterdayLog: logs.find((log) => log.date === yesterday) ?? null,
     history: { periods, logs, profile },
   });
-  const { avgCycleLength } = computeCycleStats(periods, profile);
+  const { validLengths } = computeCycleStats(periods, profile);
+  const lateDays = cycle.status === "late" && cycle.nextPeriod ? daysBetween(cycle.nextPeriod.latest, today) : null;
 
   return {
     today,
@@ -119,9 +157,11 @@ export function buildTodayView({ profile, periods, logs, dismissedFlags, now }: 
     readiness,
     mood: MOOD_BY_BAND[readiness.band],
     flags: computeFlags({ cycle, periods, logs, profile, dismissedFlags, today }),
-    ringPercent: cycle.cycleDay === null ? null : cycleProgressPercent(cycle.cycleDay, avgCycleLength),
-    nextPeriodText: formatNextPeriod(cycle.nextPeriod, today, cycle.status),
+    nextPeriodText: lateDays !== null ? formatLatePeriod(lateDays) : formatNextPeriod(cycle.nextPeriod, today, cycle.status),
     nextPeriodRange: cycle.status === "late" ? null : formatPeriodRange(cycle.nextPeriod),
+    nextPeriodBasis: cycle.nextPeriod && cycle.status !== "late" ? formatPeriodBasis(validLengths.length) : null,
+    lateDays,
+    lateNotes: lateDays !== null ? latePeriodNotes(lateDays) : [],
     periodAction: periodQuickAction(periods, cycle, today),
     guidanceKey: cycle.phase ?? "neutral",
     todayLog,

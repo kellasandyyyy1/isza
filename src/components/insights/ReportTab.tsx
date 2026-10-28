@@ -1,9 +1,8 @@
 "use client";
 
-import { IconFileText, IconFileTypePdf } from "@tabler/icons-react";
-import { useState } from "react";
+import { IconFileTypePdf } from "@tabler/icons-react";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Switch } from "@/components/ui/Switch";
 import type { DailyLog, Period, Profile } from "@/db/schema";
@@ -15,14 +14,14 @@ interface ReportTabProps {
   profile: Profile | null;
   logs: DailyLog[];
   today: string;
-  onLogPeriod: () => void;
 }
 
-export function ReportTab({ periods, profile, logs, today, onLogPeriod }: ReportTabProps) {
+export function ReportTab({ periods, profile, logs, today }: ReportTabProps) {
   const [cycleCount, setCycleCount] = useState<"3" | "6">("3");
   const [includeNotes, setIncludeNotes] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const reasonId = useId();
   const report = buildReport({
     periods,
     profile,
@@ -32,15 +31,20 @@ export function ReportTab({ periods, profile, logs, today, onLogPeriod }: Report
     includeNotes,
   });
 
+  // Before one completed cycle: the button stays where it will be, disabled, with the reason it points to.
   if (!report) {
     return (
-      <EmptyState
-        icon={IconFileText}
-        mascot={{ pose: "insights" }}
-        title="Not enough data yet"
-        text="Your report needs at least one full cycle. Log your periods to start."
-        action={{ label: "Log period", onClick: onLogPeriod }}
-      />
+      <div className="flex h-full flex-col gap-4">
+        <p className="text-body text-ink">Create a summary to bring to your doctor. It is made on this device.</p>
+        <p id={reasonId} className="text-small text-ink-muted">
+          Create a doctor summary once you have logged a full cycle.
+        </p>
+        <div className="mt-auto">
+          <Button fullWidth icon={IconFileTypePdf} disabled aria-describedby={reasonId}>
+            Create PDF
+          </Button>
+        </div>
+      </div>
     );
   }
 

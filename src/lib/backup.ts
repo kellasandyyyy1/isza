@@ -1,7 +1,7 @@
 import { exportDataSchema, type ExportData } from "@/db/schema";
 
 export function backupFileName(today: string): string {
-  return `isza-backup-${today}.json`;
+  return `iszacycle-backup-${today}.json`;
 }
 
 export type BackupCheck =
@@ -21,7 +21,7 @@ export function parseBackup(text: string): BackupCheck {
     return { ok: false, error: "This file is not a valid backup file." };
   }
   const parsed = exportDataSchema.safeParse(json);
-  if (!parsed.success) return { ok: false, error: "This file is not an Isza backup, or it is damaged." };
+  if (!parsed.success) return { ok: false, error: "This file is not an Iszacycle backup, or it is damaged." };
   const data = parsed.data;
   return {
     ok: true,

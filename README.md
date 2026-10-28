@@ -1,10 +1,10 @@
-# Isza
+# Iszacycle
 
-Isza syncs your hormonal cycle with your training, nutrition, energy and daily life. Every morning it shows your cycle day, phase and readiness score, with a simple plan for training, food, work and rest. A 20-second check-in helps it learn your personal patterns over time.
+Iszacycle syncs your hormonal cycle with your training, nutrition, energy and daily life. Every morning it shows your cycle day, phase and readiness score, with a simple plan for training, food, work and rest. A 20-second check-in helps it learn your personal patterns over time.
 
 Your data stays on this device. We never sell or share it.
 
-Isza is not a medical device or a contraceptive.
+Iszacycle is not a medical device or a contraceptive.
 
 ## Run locally
 
@@ -43,11 +43,40 @@ Offline and install tests need a production build with the service worker, so th
 npm run e2e:pwa
 ```
 
+## Changing the local database safely
+
+Everything a user logs lives in IndexedDB on her device, defined with Dexie in `src/db/db.ts`. There is no server copy, so a bad migration loses data for good. The database is at version 3 today (version 1 the original tables, 2 `mealHistory`, 3 `waterLogs`).
+
+To change the schema, add a new version. Never edit an existing one:
+
+1. Leave every existing `db.version(n).stores(...)` call exactly as it is. They describe databases already on people's devices.
+2. Add `db.version(4)` below the last one. List only the tables that are new or whose indexes change. Tables you leave out carry over unchanged. Never set a table to `null` unless you mean to delete it and all its rows.
+3. If existing rows need new fields, add an `.upgrade()` that fills them in place, inside the transaction Dexie gives you:
+
+   ```ts
+   db.version(4)
+     .stores({ workouts: "++id, date, type" })
+     .upgrade((tx) =>
+       tx
+         .table("workouts")
+         .toCollection()
+         .modify((workout) => {
+           workout.source ??= "manual";
+         }),
+     );
+   ```
+
+   Only add or fill fields. Never delete or rename a field in place: read the old field, write the new one, and keep reading both until every device has upgraded.
+4. Update the zod schema in `src/db/schema.ts` so old rows still pass validation (new fields optional, or with a default).
+5. If you added a table, add it to `allTables()` in `src/db/db.ts`, so Delete all data and Import clear it too. Decide whether it belongs in the backup file (`exportAll` and `importAll` in `src/db/repo.ts`); `mealHistory` and `waterLogs` are not in it yet.
+6. Add a test to `src/db/migration.test.ts`: build the previous version with plain Dexie, put realistic rows in, close it, then open the app's `db` and check that `db.verno` is the new number and every old row is unchanged. The existing tests do this from version 1 and from version 2.
+7. Run `npm run check`, then open the app on a device that already has data, before releasing.
+
 ## Push notifications (optional)
 
 Reminders show inside the app without any server. Real notifications while the app is closed use Web Push, with a small server part: Next.js route handlers under `src/app/api/push/` and a Supabase Postgres database.
 
-The server stores only a random device ID, the push subscription, the time zone, the discreet flag and reminder times. Never labels, notes, cycle days, phases, predictions, symptoms or any log data. Notification text is fixed on the server and never mentions periods, cycles or symptoms.
+The server stores only a random device ID, the push subscription, the time zone, the discreet flag and reminder times. Never labels, notes, cycle days, phases, predictions, symptoms or any log data. Notification text is fixed on the server and never mentions periods, cycles or symptoms. The title is the app name, Iszacycle, which does contain "cycle"; discreet mode replaces it with a neutral "Reminder".
 
 ### Environment variables
 

@@ -1,13 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 import { completeOnboarding } from "./helpers";
 
-const ROUTES = [
-  { path: "/today", heading: "Today" },
+// Today's h1 is the greeting; the other screens are headed by their names.
+const ROUTES: { path: string; heading: string | RegExp }[] = [
+  { path: "/today", heading: /^Good (morning|afternoon|evening)/ },
   { path: "/calendar", heading: "Calendar" },
   { path: "/train", heading: "Train" },
   { path: "/insights", heading: "Insights" },
   { path: "/me", heading: "Me" },
-  { path: "/onboarding", heading: "Your cycle, your rhythm." },
+  { path: "/onboarding", heading: "Because “why am I like this today” deserves an answer." },
 ];
 
 // Waits until the service worker is active and controls this page.
@@ -23,11 +24,12 @@ async function waitForServiceWorker(page: Page) {
 test("the manifest and icons make the app installable", async ({ page, request }) => {
   const manifest = await (await request.get("/manifest.webmanifest")).json();
   expect(manifest).toMatchObject({
-    name: "Isza",
-    short_name: "Isza",
+    name: "Iszacycle",
+    short_name: "Iszacycle",
     display: "standalone",
     start_url: "/today",
-    theme_color: "#C2335D",
+    // The page background, like the theme-color meta tag in light mode.
+    theme_color: "#FFFAF7",
     background_color: "#FFFAF7",
   });
   for (const icon of manifest.icons as { src: string; sizes: string; purpose: string }[]) {
@@ -64,7 +66,9 @@ test("every screen loads offline after the first visit, and saving still works",
   const nav = page.getByRole("navigation", { name: "Main" });
   for (const name of ["Calendar", "Train", "Insights", "Me", "Today", "Insights", "Calendar", "Me", "Train", "Today"]) {
     await nav.getByRole("link", { name }).click();
-    await expect(page.getByRole("heading", { level: 1 }), name).toHaveText(name);
+    await expect(page.getByRole("heading", { level: 1 }), name).toHaveText(
+      name === "Today" ? /^Good (morning|afternoon|evening)/ : name,
+    );
     await expect(nav.getByRole("link", { name })).toHaveAttribute("aria-current", "page");
   }
 

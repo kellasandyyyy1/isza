@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generateDemoData } from "@/dev/seed";
 import {
   buildCalendarContext,
+  legendMarkers,
   markersFor,
   monthGrid,
   periodContaining,
@@ -45,6 +46,30 @@ describe("sixWeekGrid", () => {
   });
 });
 
+describe("legendMarkers", () => {
+  // A period from Oct 5 with a 28-day default: fertile Oct 13 to 19, next period Nov 2 to 6, next fertile Nov 10 to 16.
+  const periods = [{ id: 1, startDate: "2026-10-05", endDate: "2026-10-09" }];
+  const context = buildCalendarContext({ periods, profile: null, logs: [makeLog("2026-10-20")], workouts: [], today: TODAY });
+
+  it("lists only the markers on the days shown, in legend order", () => {
+    // October's grid runs Sep 28 to Nov 8: every marker is on it.
+    expect(legendMarkers(context, sixWeekGrid(new Date(2026, 9, 1)))).toEqual(["logged", "predicted", "fertile", "check-in"]);
+    // December's grid (Nov 30 to Jan 10) is past every logged and predicted day.
+    expect(legendMarkers(context, sixWeekGrid(new Date(2026, 11, 1)))).toEqual([]);
+  });
+
+  it("leaves out Predicted when no predicted day is on screen", () => {
+    const septemberDays = sixWeekGrid(new Date(2026, 8, 1)).filter((date) => date < "2026-10-01");
+    expect(legendMarkers(context, septemberDays)).not.toContain("predicted");
+  });
+
+  it("keeps a single remaining item", () => {
+    expect(legendMarkers(context, ["2026-10-20"])).toEqual(["check-in"]);
+    expect(legendMarkers(context, ["2026-10-15", "2026-10-20"])).toEqual(["fertile", "check-in"]);
+    expect(legendMarkers(context, ["2026-10-06"])).toEqual(["logged"]);
+  });
+});
+
 describe("buildCalendarContext with the demo data", () => {
   const demo = generateDemoData(new Date(2026, 9, 25));
   const context = buildCalendarContext({
@@ -76,6 +101,13 @@ describe("buildCalendarContext with the demo data", () => {
     expect(markersFor(context, shiftDate(starts[4], 15)).fertile).toBe(true);
     expect(markersFor(context, shiftDate(starts[4], 16)).fertile).toBe(false);
     expect(context.fertileDays.size).toBe(14);
+  });
+
+  it("marks the first and last day of the fertile window for the band ends", () => {
+    expect(markersFor(context, shiftDate(starts[4], 9))).toMatchObject({ fertileStart: true, fertileEnd: false });
+    expect(markersFor(context, shiftDate(starts[4], 12))).toMatchObject({ fertileStart: false, fertileEnd: false });
+    expect(markersFor(context, shiftDate(starts[4], 15))).toMatchObject({ fertileStart: false, fertileEnd: true });
+    expect(markersFor(context, shiftDate(starts[4], 16))).toMatchObject({ fertileStart: false, fertileEnd: false });
   });
 
   it("marks check-ins and today", () => {

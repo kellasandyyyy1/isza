@@ -53,7 +53,7 @@ describe("sendDueReminders", () => {
     expect(await sendDueReminders(NOW, d)).toEqual({ sent: 1, failed: 0, removed: 0 });
     expect(d.sendPush).toHaveBeenCalledTimes(1);
     expect(d.sendPush.mock.calls[0][1]).toEqual({
-      title: "Isza",
+      title: "Iszacycle",
       body: "Time for your daily check-in.",
       url: "/today?checkin=1",
       tag: "check-in",

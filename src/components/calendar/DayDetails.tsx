@@ -19,6 +19,8 @@ interface DayDetailsProps {
   onEditCheckIn: (date: string) => void;
   // The desktop panel shows the date as a heading; the mobile sheet has it in its title.
   showDateHeading?: boolean;
+  // "period" opens straight on the period editor, for the summary strip's Edit period.
+  initialView?: "summary" | "period";
 }
 
 type View = "summary" | "period" | "remove-period";
@@ -33,10 +35,10 @@ function phaseLine(context: CalendarContext, date: string): string {
 
 // Key this by date so each day starts on its summary.
 export function DayDetails(props: DayDetailsProps) {
-  const { date, context, periods, typicalPeriodLength, onEditCheckIn, showDateHeading = false } = props;
+  const { date, context, periods, typicalPeriodLength, onEditCheckIn, showDateHeading = false, initialView = "summary" } = props;
   const baseId = useId();
   const ids = { heading: `${baseId}-heading`, periodButton: `${baseId}-period-button` };
-  const [view, setView] = useState<View>("summary");
+  const [view, setView] = useState<View>(initialView);
   const focusTarget = useRef<string | null>(null);
   const future = date > context.today;
   const period = periodContaining(periods, date, context.today);

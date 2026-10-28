@@ -4,7 +4,7 @@ import { MarkerSwatch, type MarkerKind } from "./MarkerSwatch";
 const ENTRIES: { kind: MarkerKind; title: string; text: string }[] = [
   { kind: "logged", title: "Period", text: "Filled circle: days you logged as your period." },
   { kind: "predicted", title: "Predicted period", text: "Dashed circle: when your next period may come." },
-  { kind: "fertile", title: "Fertile window", text: "Estimated only. Not for birth control." },
+  { kind: "fertile", title: "Fertile window", text: "Soft band behind the days. Estimated only. Not for birth control." },
   { kind: "check-in", title: "Check-in", text: "Small dot under the date: you logged a check-in." },
   { kind: "today", title: "Today", text: "Ring around the date." },
 ];

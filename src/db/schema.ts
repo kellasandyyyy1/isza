@@ -124,6 +124,25 @@ export const dismissedFlagSchema = z.object({
 });
 export type DismissedFlag = z.infer<typeof dismissedFlagSchema>;
 
+// One row per action on a daily meal idea, so a day can hold a skipped meal and the one shown after it.
+export const mealActionSchema = z.enum(["shown", "cooked", "skipped"]);
+export const mealHistorySchema = z.object({
+  id: idSchema.optional(),
+  date: isoDateSchema,
+  mealId: z.string().min(1),
+  action: mealActionSchema,
+});
+export type MealAction = z.infer<typeof mealActionSchema>;
+
+// The optional water tally: one row per day, a plain count of glasses.
+export const waterLogSchema = z.object({
+  date: isoDateSchema,
+  count: z.number().int().min(0),
+  updatedAt: timestampSchema,
+});
+export type WaterLog = z.infer<typeof waterLogSchema>;
+export type MealHistoryEntry = z.infer<typeof mealHistorySchema>;
+
 // Not specified in Step 4 beyond its key. Holds simple app settings by name.
 export const settingSchema = z.object({
   key: z.string().min(1),

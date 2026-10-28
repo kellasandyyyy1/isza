@@ -12,12 +12,19 @@ interface CheckInSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  // "symptoms" is the symptom shortcut on Today: only the symptoms, under its own title.
+  startView?: "main" | "symptoms";
 }
 
-export function CheckInSheet({ date, today, open, onOpenChange, onSaved }: CheckInSheetProps) {
+export function CheckInSheet({ date, today, open, onOpenChange, onSaved, startView = "main" }: CheckInSheetProps) {
   const log = useLog(date);
   const periods = usePeriods();
-  const title = date === today ? "Today's check-in" : `Check-in for ${format(parseISO(date), "EEE, MMM d")}`;
+  const title =
+    startView === "symptoms"
+      ? "Log a symptom"
+      : date === today
+        ? "Today's check-in"
+        : `Check-in for ${format(parseISO(date), "EEE, MMM d")}`;
 
   return (
     <ResponsiveSheet open={open} onOpenChange={onOpenChange} title={title}>
@@ -25,7 +32,15 @@ export function CheckInSheet({ date, today, open, onOpenChange, onSaved }: Check
         <div aria-busy="true" className="h-40" />
       ) : (
         // Remounts on every open, so the form always starts from the saved log.
-        <CheckInForm key={date} date={date} today={today} log={log} periods={periods} onSaved={onSaved} />
+        <CheckInForm
+          key={`${date}-${startView}`}
+          date={date}
+          today={today}
+          log={log}
+          periods={periods}
+          onSaved={onSaved}
+          startView={startView}
+        />
       )}
     </ResponsiveSheet>
   );

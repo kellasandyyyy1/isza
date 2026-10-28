@@ -11,7 +11,7 @@ export const GOAL_OPTIONS: { value: Goal; label: string; icon: Icon }[] = [
   { value: "irregular", label: "Track irregular cycles", icon: IconCalendarStats },
 ];
 
-export const HORMONAL_NOTE = "Isza will track symptoms and energy without ovulation predictions.";
+export const HORMONAL_NOTE = "Iszacycle will track symptoms and energy without ovulation predictions.";
 
 export const CONTRACEPTION_OPTIONS: RadioCardOption<Contraception>[] = [
   { value: "none", label: "None" },

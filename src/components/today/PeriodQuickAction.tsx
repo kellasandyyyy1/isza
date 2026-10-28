@@ -1,4 +1,4 @@
-import { IconDroplet } from "@tabler/icons-react";
+import { ArtIcon } from "@/components/ui/ArtIcon";
 import type { PeriodQuickAction as Action } from "@/lib/today";
 
 const LABELS: Record<Action["kind"], string> = {
@@ -14,7 +14,7 @@ export function PeriodQuickAction({ action, onTap }: { action: Action; onTap: ()
       onClick={onTap}
       className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-pill bg-surface-2 px-4 text-body-strong text-ink transition-colors hover:bg-line"
     >
-      <IconDroplet size={20} stroke={1.75} aria-hidden className="text-period" />
+      <ArtIcon name="blood" size="xs" />
       {LABELS[action.kind]}
     </button>
   );

@@ -1,6 +1,8 @@
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
+import { SupportLine } from "@/components/validation/SupportLine";
+import { WaterDetails } from "@/components/water/WaterDetails";
 import { NOTE_MAX_LENGTH, parseTemperature, type CheckInDraft } from "@/lib/checkin";
 import { cx } from "@/lib/cx";
 import { LH_OPTIONS } from "./checkinConfig";
@@ -10,6 +12,9 @@ import { ViewHeader } from "./ViewHeader";
 
 interface DetailsViewProps {
   headingId: string;
+  // The check-in's date, and whether it is today.
+  date: string;
+  isToday: boolean;
   draft: CheckInDraft;
   onChange: (patch: Partial<CheckInDraft>) => void;
   onDone: () => void;
@@ -18,7 +23,7 @@ interface DetailsViewProps {
 const fieldClasses =
   "w-full rounded-input border-2 bg-surface-2 px-4 text-body text-ink placeholder:text-ink-muted aria-[invalid=true]:border-danger";
 
-export function DetailsView({ headingId, draft, onChange, onDone }: DetailsViewProps) {
+export function DetailsView({ headingId, date, isToday, draft, onChange, onDone }: DetailsViewProps) {
   const ids = { temperature: useId(), temperatureHelp: useId(), lh: useId(), note: useId(), noteCount: useId() };
   const [temperatureText, setTemperatureText] = useState(draft.bbt === null ? "" : String(draft.bbt));
   const temperature = parseTemperature(temperatureText);
@@ -36,6 +41,9 @@ export function DetailsView({ headingId, draft, onChange, onDone }: DetailsViewP
   return (
     <div className="flex flex-col gap-4">
       <ViewHeader id={headingId} title="More details" onBack={onDone} backDisabled={blocked} />
+
+      {/* Today's check-in only: the tally counts glasses today. */}
+      {isToday && <WaterDetails today={date} />}
 
       <SleepStepper value={draft.sleepHours} onChange={(sleepHours) => onChange({ sleepHours })} />
 
@@ -96,6 +104,7 @@ export function DetailsView({ headingId, draft, onChange, onDone }: DetailsViewP
       <Button fullWidth disabled={blocked} onClick={onDone}>
         Done
       </Button>
+      <SupportLine />
     </div>
   );
 }

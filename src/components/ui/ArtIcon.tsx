@@ -3,7 +3,7 @@ import { cx } from "@/lib/cx";
 import type { IconTileSize } from "./IconTile";
 
 // Built from assets/icons/ by scripts/build-art-icons.mjs.
-export type ArtIconName = "period" | "sleep" | "food" | "train" | "social" | "energy";
+export type ArtIconName = "period" | "sleep" | "food" | "train" | "social" | "energy" | "security" | "heart" | "blood";
 
 export interface ArtIconProps {
   name: ArtIconName;

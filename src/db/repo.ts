@@ -1,6 +1,10 @@
 import { addDays, format } from "date-fns";
 import { z } from "zod";
+import type { CostTier } from "@/content/meals";
 import type { PeriodChange } from "@/lib/checkin";
+import type { CuisinePreference } from "@/lib/meals";
+import { DEFAULT_VALIDATION_SETTINGS, type ValidationSettings } from "@/lib/validation";
+import { DEFAULT_WATER_SETTINGS, nextWaterCount, type WaterSettings } from "@/lib/water";
 import { allTables, db } from "./db";
 import {
   EXPORT_VERSION,
@@ -14,9 +18,13 @@ import {
   supplySchema,
   timestampSchema,
   workoutSchema,
+  mealHistorySchema,
+  waterLogSchema,
   type DailyLog,
   type DismissedFlag,
   type ExportData,
+  type MealHistoryEntry,
+  type WaterLog,
   type Period,
   type Profile,
   type Reminder,
@@ -288,6 +296,191 @@ export async function getRemindersCheckedAt(): Promise<Date | null> {
 export async function setRemindersCheckedAt(at: Date): Promise<void> {
   const value = validate(timestampSchema, at.toISOString(), "reminder check time");
   await db.settings.put({ key: REMINDERS_CHECKED_KEY, value });
+}
+
+// Supportive notes after a hard check-in: on or off, when one last showed, and how often she dismissed one.
+
+const VALIDATION_KEYS = {
+  enabled: "validationCardsEnabled",
+  lastShown: "lastValidationShownAt",
+  dismissCount: "validationDismissCount",
+} as const;
+
+export async function getValidationSettings(): Promise<ValidationSettings> {
+  const [enabled, lastShown, dismissCount] = await db.settings.bulkGet(Object.values(VALIDATION_KEYS));
+  const lastShownDate = isoDateSchema.safeParse(lastShown?.value);
+  return {
+    validationCardsEnabled:
+      typeof enabled?.value === "boolean" ? enabled.value : DEFAULT_VALIDATION_SETTINGS.validationCardsEnabled,
+    lastValidationShownAt: lastShownDate.success ? lastShownDate.data : DEFAULT_VALIDATION_SETTINGS.lastValidationShownAt,
+    validationDismissCount:
+      typeof dismissCount?.value === "number" ? dismissCount.value : DEFAULT_VALIDATION_SETTINGS.validationDismissCount,
+  };
+}
+
+export async function saveValidationSettings(settings: ValidationSettings): Promise<void> {
+  if (settings.lastValidationShownAt !== null) validate(isoDateSchema, settings.lastValidationShownAt, "last note date");
+  await db.settings.bulkPut([
+    { key: VALIDATION_KEYS.enabled, value: settings.validationCardsEnabled },
+    { key: VALIDATION_KEYS.lastShown, value: settings.lastValidationShownAt },
+    { key: VALIDATION_KEYS.dismissCount, value: settings.validationDismissCount },
+  ]);
+}
+
+// Daily meal ideas
+
+const MEAL_KEYS = {
+  enabled: "mealSuggestionsEnabled",
+  maxCostTier: "maxCostTier",
+  excluded: "excludedMealIds",
+  cuisine: "cuisinePreference",
+} as const;
+
+const costTierSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
+const cuisinePreferenceSchema = z.enum(["mixed", "filipino", "simple"]);
+// Settings hold plain values, so the excluded list is stored as a JSON string.
+const excludedMealIdsSchema = z.array(z.string().min(1));
+
+export interface MealSettings {
+  mealSuggestionsEnabled: boolean;
+  maxCostTier: CostTier;
+  excludedMealIds: string[];
+  cuisinePreference: CuisinePreference;
+}
+
+export const DEFAULT_MEAL_SETTINGS: MealSettings = {
+  mealSuggestionsEnabled: true,
+  maxCostTier: 2,
+  excludedMealIds: [],
+  cuisinePreference: "mixed",
+};
+
+function parseExcluded(value: unknown): string[] {
+  if (typeof value !== "string") return DEFAULT_MEAL_SETTINGS.excludedMealIds;
+  try {
+    const parsed = excludedMealIdsSchema.safeParse(JSON.parse(value));
+    return parsed.success ? parsed.data : DEFAULT_MEAL_SETTINGS.excludedMealIds;
+  } catch {
+    return DEFAULT_MEAL_SETTINGS.excludedMealIds;
+  }
+}
+
+export async function getMealSettings(): Promise<MealSettings> {
+  const [enabled, tier, excluded, cuisine] = await db.settings.bulkGet(Object.values(MEAL_KEYS));
+  const parsedTier = costTierSchema.safeParse(tier?.value);
+  const parsedCuisine = cuisinePreferenceSchema.safeParse(cuisine?.value);
+  return {
+    mealSuggestionsEnabled:
+      typeof enabled?.value === "boolean" ? enabled.value : DEFAULT_MEAL_SETTINGS.mealSuggestionsEnabled,
+    maxCostTier: parsedTier.success ? parsedTier.data : DEFAULT_MEAL_SETTINGS.maxCostTier,
+    excludedMealIds: parseExcluded(excluded?.value),
+    cuisinePreference: parsedCuisine.success ? parsedCuisine.data : DEFAULT_MEAL_SETTINGS.cuisinePreference,
+  };
+}
+
+export async function saveMealSettings(settings: MealSettings): Promise<void> {
+  validate(costTierSchema, settings.maxCostTier, "budget");
+  validate(cuisinePreferenceSchema, settings.cuisinePreference, "meal style");
+  validate(excludedMealIdsSchema, settings.excludedMealIds, "excluded meals");
+  await db.settings.bulkPut([
+    { key: MEAL_KEYS.enabled, value: settings.mealSuggestionsEnabled },
+    { key: MEAL_KEYS.maxCostTier, value: settings.maxCostTier },
+    { key: MEAL_KEYS.excluded, value: JSON.stringify(settings.excludedMealIds) },
+    { key: MEAL_KEYS.cuisine, value: settings.cuisinePreference },
+  ]);
+}
+
+export async function addMealHistory(entry: Omit<MealHistoryEntry, "id">): Promise<number> {
+  const valid = validate(mealHistorySchema, entry, "meal history");
+  return requireId(await db.mealHistory.add(valid), "meal history");
+}
+
+// "Show another" and "Not for me": the skip, the meal shown next and, for Not for me, the new excluded list,
+// all in one write, so the screen never shows a meal in between.
+export async function swapMeal(
+  date: string,
+  skippedId: string,
+  nextId: string | null,
+  settings?: MealSettings,
+): Promise<void> {
+  await db.transaction("rw", db.mealHistory, db.settings, async () => {
+    await addMealHistory({ date, mealId: skippedId, action: "skipped" });
+    if (nextId) await addMealHistory({ date, mealId: nextId, action: "shown" });
+    if (settings) await saveMealSettings(settings);
+  });
+}
+
+// Inclusive on both ends, oldest first, and in the order they were added within a day.
+export async function listMealHistory(from: string, to: string): Promise<MealHistoryEntry[]> {
+  const rows = await db.mealHistory.where("date").between(from, to, true, true).toArray();
+  return rows.sort((a, b) => a.date.localeCompare(b.date) || (a.id ?? 0) - (b.id ?? 0));
+}
+
+// Water: a tally that is always on, and optional reminders. An older "waterTrackingEnabled" row is ignored.
+
+const WATER_KEYS = {
+  reminders: "waterRemindersEnabled",
+  start: "waterWindowStart",
+  end: "waterWindowEnd",
+  interval: "waterIntervalHours",
+  glassMl: "waterGlassMl",
+} as const;
+
+const clockTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const waterIntervalSchema = z.union([z.literal(2), z.literal(3), z.literal(4)]);
+const glassMlSchema = z.number().int().min(50).max(1000);
+
+export async function getWaterSettings(): Promise<WaterSettings> {
+  const [reminders, start, end, interval, glassMl] = await db.settings.bulkGet(Object.values(WATER_KEYS));
+  const read = <T,>(schema: z.ZodType<T>, value: unknown, fallback: T): T => {
+    const parsed = schema.safeParse(value);
+    return parsed.success ? parsed.data : fallback;
+  };
+  const defaults = DEFAULT_WATER_SETTINGS;
+  return {
+    waterRemindersEnabled: read(z.boolean(), reminders?.value, defaults.waterRemindersEnabled),
+    waterWindowStart: read(clockTimeSchema, start?.value, defaults.waterWindowStart),
+    waterWindowEnd: read(clockTimeSchema, end?.value, defaults.waterWindowEnd),
+    waterIntervalHours: read(waterIntervalSchema, interval?.value, defaults.waterIntervalHours),
+    waterGlassMl: read(glassMlSchema, glassMl?.value, defaults.waterGlassMl),
+  };
+}
+
+export async function saveWaterSettings(settings: WaterSettings): Promise<void> {
+  validate(clockTimeSchema, settings.waterWindowStart, "water window start");
+  validate(clockTimeSchema, settings.waterWindowEnd, "water window end");
+  validate(waterIntervalSchema, settings.waterIntervalHours, "water interval");
+  validate(glassMlSchema, settings.waterGlassMl, "glass size");
+  await db.settings.bulkPut([
+    { key: WATER_KEYS.reminders, value: settings.waterRemindersEnabled },
+    { key: WATER_KEYS.start, value: settings.waterWindowStart },
+    { key: WATER_KEYS.end, value: settings.waterWindowEnd },
+    { key: WATER_KEYS.interval, value: settings.waterIntervalHours },
+    { key: WATER_KEYS.glassMl, value: settings.waterGlassMl },
+  ]);
+}
+
+export async function getWaterLog(date: string): Promise<WaterLog | null> {
+  return (await db.waterLogs.get(validate(isoDateSchema, date, "date"))) ?? null;
+}
+
+// One tap on the tally: the day's count goes up or down by one, never below 0. Same-day taps merge into one row.
+export async function changeWaterCount(date: string, delta: 1 | -1, now: Date = new Date()): Promise<WaterLog> {
+  return db.transaction("rw", db.waterLogs, async () => {
+    const current = await db.waterLogs.get(validate(isoDateSchema, date, "date"));
+    const next = validate(
+      waterLogSchema,
+      { date, count: nextWaterCount(current?.count ?? 0, delta), updatedAt: now.toISOString() },
+      "water log",
+    );
+    await db.waterLogs.put(next);
+    return next;
+  });
+}
+
+// Inclusive on both ends, sorted by date.
+export async function listWaterLogs(from: string, to: string): Promise<WaterLog[]> {
+  return db.waterLogs.where("date").between(from, to, true, true).toArray();
 }
 
 // Web Push device settings. They belong to this browser, not to the person's data:

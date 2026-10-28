@@ -14,7 +14,7 @@ export function InstallApp() {
   if (canInstall) {
     return (
       <Button variant="secondary" icon={IconDeviceMobile} onClick={() => void promptInstall()}>
-        Install Isza
+        Install Iszacycle
       </Button>
     );
   }

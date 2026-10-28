@@ -49,8 +49,9 @@ export function SegmentedControl<T extends string>({
             // Without a panel there is nothing to control, so drop the dangling reference.
             {...(panel === undefined ? { "aria-controls": undefined } : {})}
             className={cx(
+              // 44px segments on a --surface track. Active: --selected-bg, 1px --line border, --ink text.
               "inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-pill border border-transparent px-3 text-small text-ink-muted transition-colors",
-              "data-[state=active]:border-line data-[state=active]:bg-selected-bg data-[state=active]:font-semibold data-[state=active]:text-selected-ink",
+              "data-[state=active]:border-line data-[state=active]:bg-selected-bg data-[state=active]:font-semibold data-[state=active]:text-ink",
             )}
           >
             {OptionIcon && <OptionIcon size={20} stroke={1.75} aria-hidden />}

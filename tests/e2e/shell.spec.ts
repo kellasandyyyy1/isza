@@ -13,7 +13,7 @@ const appRoutes: { path: string; title: string; heading: string | RegExp }[] = [
 ];
 
 const allRoutes = [
-  { path: "/onboarding", title: "Welcome", heading: "Your cycle, your rhythm." },
+  { path: "/onboarding", title: "Welcome", heading: "Because “why am I like this today” deserves an answer." },
   ...appRoutes,
 ];
 
@@ -26,13 +26,13 @@ test.describe("routes", () => {
     test(`${path} shows its title`, async ({ page }) => {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
-      await expect(page).toHaveTitle(`${title} | Isza`);
+      await expect(page).toHaveTitle(`${title} | Iszacycle`);
     });
   }
 
   test("onboarding has no navigation", async ({ page }) => {
     await page.goto("/onboarding");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your cycle, your rhythm.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Because “why am I like this today” deserves an answer.");
     await expect(mainNav(page)).toHaveCount(0);
   });
 });

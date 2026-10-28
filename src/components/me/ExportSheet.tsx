@@ -34,7 +34,7 @@ export function ExportSheet({ open, onOpenChange, onExported }: ExportSheetProps
     <ResponsiveSheet open={open} onOpenChange={onOpenChange} title="Export data">
       <div className="flex flex-col gap-3">
         <p className="text-body text-ink">
-          Download a copy of everything Isza keeps on this device. Store it somewhere private.
+          Download a copy of everything Iszacycle keeps on this device. Store it somewhere private.
         </p>
         <Button fullWidth icon={IconDownload} loading={busy} onClick={() => void download()}>
           Download backup

@@ -129,14 +129,27 @@ describe("modes", () => {
     expect(computeCycleState({ periods: [], profile: null, logs: [], today: "2026-10-25" })).toEqual({
       mode: "no-data",
       cycleDay: null,
+      cycleStart: null,
       phase: null,
       isLateLuteal: false,
       nextPeriod: null,
       ovulationDay: null,
       fertileWindow: null,
       confidence: "low",
+      cycleLengthIsEstimate: true,
+      avgCycleLength: null,
+      menstrualEnd: null,
+      periodLoggedDays: null,
       status: "no-data",
     });
+  });
+
+  it("calls the cycle length an estimate until 2 valid lengths exist", () => {
+    const one = periodsFromLengths("2026-08-28", [28]);
+    const two = periodsFromLengths("2026-07-31", [28, 28]);
+    const state = (periods: typeof one) => computeCycleState({ periods, profile: null, logs: [], today: "2026-10-01" });
+    expect(state(one).cycleLengthIsEstimate).toBe(true);
+    expect(state(two).cycleLengthIsEstimate).toBe(false);
   });
 });
 

@@ -1,7 +1,8 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/cx";
 
-export type CardTone = "menstrual" | "follicular" | "ovulatory" | "luteal";
+// "surface-2" is a quiet neutral card, for supportive notes.
+export type CardTone = "menstrual" | "follicular" | "ovulatory" | "luteal" | "surface-2";
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   tone?: CardTone;
@@ -14,6 +15,7 @@ const toneClasses: Record<CardTone, string> = {
   follicular: "bg-phase-follicular-tint",
   ovulatory: "bg-phase-ovulatory-tint",
   luteal: "bg-phase-luteal-tint",
+  "surface-2": "bg-surface-2",
 };
 
 const flatToneClasses: Record<CardTone, string> = {
@@ -21,6 +23,7 @@ const flatToneClasses: Record<CardTone, string> = {
   follicular: "bg-phase-follicular-surface",
   ovulatory: "bg-phase-ovulatory-surface",
   luteal: "bg-phase-luteal-surface",
+  "surface-2": "bg-surface-2",
 };
 
 export function Card({ tone, flat = false, className, ...rest }: CardProps) {

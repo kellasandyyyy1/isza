@@ -10,12 +10,17 @@ function cycleWith(phase: Phase | null, isLateLuteal = false): CycleState {
   return {
     mode: phase === null ? "hormonal" : "standard",
     cycleDay: 10,
+    cycleStart: "2026-10-16",
     phase,
     isLateLuteal,
     nextPeriod: null,
     ovulationDay: null,
     fertileWindow: null,
     confidence: "high",
+    cycleLengthIsEstimate: false,
+    avgCycleLength: 28,
+    menstrualEnd: 5,
+    periodLoggedDays: 5,
     status: "ok",
   };
 }

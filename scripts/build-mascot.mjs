@@ -4,7 +4,20 @@ import { mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 
-const POSES = ["today", "checkin", "calendar", "train", "insights", "me"];
+const POSES = [
+  "today",
+  "checkin",
+  "calendar",
+  "train",
+  "insights",
+  "me",
+  "menstrual",
+  "follicular",
+  "ovulatory",
+  "luteal",
+  "water",
+  "validation",
+];
 const WIDTHS = [160, 320, 640];
 const PNG_FALLBACK_WIDTH = 640;
 const PADDING = 0.04;

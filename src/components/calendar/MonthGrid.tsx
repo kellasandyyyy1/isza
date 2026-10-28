@@ -24,13 +24,16 @@ interface MonthGridProps {
   onSwipe: (direction: 1 | -1) => void;
 }
 
-// 6 rows of 7 days. Under 1024px the rows share the height left between the header and the legend.
+// Always 6 rows of 7 days, so the grid keeps its height from month to month. The weekday row and the 6 day rows
+// share one grid and one row gap. Under 1024px the day rows split the height left after the header, the legend
+// and the summary strip equally, at least 44px each.
 export function MonthGrid({ month, context, selected, onSelect, onSwipe }: MonthGridProps) {
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-1 lg:flex-none">
-      <div aria-hidden className="grid shrink-0 grid-cols-7 text-center text-caption text-ink-muted">
+    // No row gap: the 44px cells already space the dates, and the weekday row sits the same distance above row 1.
+    <div className="grid min-h-0 flex-1 grid-rows-[auto_repeat(6,minmax(44px,1fr))] lg:h-114 lg:flex-none">
+      <div aria-hidden className="grid grid-cols-7 text-center text-caption text-ink-muted">
         {WEEKDAYS.map(({ short, long }) => (
           <span key={long}>{short}</span>
         ))}
@@ -48,7 +51,8 @@ export function MonthGrid({ month, context, selected, onSelect, onSwipe }: Month
           const dx = event.clientX - start.x;
           if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(event.clientY - start.y)) onSwipe(dx < 0 ? 1 : -1);
         }}
-        className="grid min-h-0 flex-1 touch-pan-y grid-cols-7 grid-rows-6 lg:h-108 lg:flex-none"
+        // The day rows are the outer grid's own rows, gap included.
+        className="row-span-6 grid touch-pan-y grid-cols-7 grid-rows-subgrid"
       >
         {sixWeekGrid(month).map((date) => (
           <DayCell

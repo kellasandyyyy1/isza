@@ -1,11 +1,11 @@
 @AGENTS.md
 
-# ISZA project rules
+# ISZACYCLE project rules
 
-You are building ISZA, a production web app that syncs a woman's hormonal cycle with her training, nutrition, energy and daily life. Follow these rules in every step. If a step conflicts with these rules, these rules win.
+You are building ISZACYCLE, a production web app that syncs a woman's hormonal cycle with her training, nutrition, energy and daily life. Follow these rules in every step. If a step conflicts with these rules, these rules win.
 
 ## 1. PRODUCT IN ONE LINE
-Every morning Isza tells the user her cycle day, phase and readiness score, and gives a simple plan for training, food, work and rest. She logs a 20-second check-in, and the app learns her personal patterns over time.
+Every morning Iszacycle tells the user her cycle day, phase and readiness score, and gives a simple plan for training, food, work and rest. She logs a 20-second check-in, and the app learns her personal patterns over time.
 
 ## 2. STACK (use ONLY these; do not add any other dependency without asking me first)
 - Next.js (latest stable, App Router) + React + TypeScript (strict mode)
@@ -66,7 +66,7 @@ Approved additions: jsdom and @testing-library/dom (devDependencies, required by
 ## 9. PRIVACY
 - All user data stays in IndexedDB on the device. No analytics, no trackers, no third-party scripts, no network calls with user data.
 - Show on onboarding and in settings: "Your data stays on this device. We never sell or share it."
-- Show in settings and the doctor report: "Isza is not a medical device or a contraceptive."
+- Show in settings and the doctor report: "Iszacycle is not a medical device or a contraceptive."
 - Exception: Step 13b Web Push sends only the device ID, push subscription, timezone, discreet flag and reminder schedule. Never health data.
 
 ## 10. ANTI-HALLUCINATION RULES

@@ -82,7 +82,7 @@ export function AppLockSheet({ open, onOpenChange, lock, onChanged }: AppLockShe
           </>
         ) : (
           <>
-            <p className="text-body text-ink">Set a 4-digit PIN. You will need it each time you open Isza.</p>
+            <p className="text-body text-ink">Set a 4-digit PIN. You will need it each time you open Iszacycle.</p>
             <PinField label="New PIN" value={pin} onChange={setPin} />
             <PinField label="Repeat the PIN" value={confirm} onChange={setConfirm} />
           </>

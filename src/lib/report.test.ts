@@ -120,8 +120,8 @@ describe("buildReport", () => {
 
 describe("report text", () => {
   it("names the file by date and keeps the required footer", () => {
-    expect(reportFileName(TODAY)).toBe("isza-report-2026-10-25.pdf");
-    expect(REPORT_FOOTER).toContain("Isza is not a medical device or a contraceptive.");
+    expect(reportFileName(TODAY)).toBe("iszacycle-report-2026-10-25.pdf");
+    expect(REPORT_FOOTER).toContain("Iszacycle is not a medical device or a contraceptive.");
     expect(REPORT_FOOTER).toContain("This summary is based on self-reported data.");
   });
 });

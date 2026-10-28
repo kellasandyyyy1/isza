@@ -4,12 +4,12 @@ import { backupFileName, parseBackup } from "./backup";
 
 describe("backupFileName", () => {
   it("names the file by date", () => {
-    expect(backupFileName("2026-10-25")).toBe("isza-backup-2026-10-25.json");
+    expect(backupFileName("2026-10-25")).toBe("iszacycle-backup-2026-10-25.json");
   });
 });
 
 describe("parseBackup", () => {
-  it("accepts an Isza backup and counts what it holds", () => {
+  it("accepts an Iszacycle backup and counts what it holds", () => {
     const demo = generateDemoData(new Date(2026, 9, 25));
     const result = parseBackup(JSON.stringify(demo));
     expect(result.ok).toBe(true);
@@ -26,7 +26,7 @@ describe("parseBackup", () => {
   it("rejects JSON that is not a valid backup", () => {
     expect(parseBackup(JSON.stringify({ version: 1 }))).toEqual({
       ok: false,
-      error: "This file is not an Isza backup, or it is damaged.",
+      error: "This file is not an Iszacycle backup, or it is damaged.",
     });
     const demo = generateDemoData(new Date(2026, 9, 25));
     expect(parseBackup(JSON.stringify({ ...demo, version: 2 })).ok).toBe(false);

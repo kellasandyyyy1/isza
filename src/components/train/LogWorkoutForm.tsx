@@ -11,16 +11,24 @@ import { DURATION_RANGE, EFFORT_RANGE, WORKOUT_NOTE_MAX_LENGTH, workoutFormSchem
 import { DurationStepper } from "./DurationStepper";
 import { FEEL_OPTIONS, WORKOUT_TYPES } from "./workoutConfig";
 
+export interface WorkoutPrefill {
+  type: WorkoutType;
+  durationMin: number;
+  rpe: number;
+}
+
 interface LogWorkoutFormProps {
   date: string;
+  // Starting values from the Plan tab's Start this workout. Without it the form starts empty.
+  prefill?: WorkoutPrefill | null;
   onSaved: () => void;
 }
 
-export function LogWorkoutForm({ date, onSaved }: LogWorkoutFormProps) {
+export function LogWorkoutForm({ date, prefill = null, onSaved }: LogWorkoutFormProps) {
   const ids = { type: useId(), feel: useId(), note: useId(), noteCount: useId() };
-  const [type, setType] = useState<WorkoutType | null>(null);
-  const [durationMin, setDuration] = useState<number>(DURATION_RANGE.initial);
-  const [rpe, setRpe] = useState<number>(EFFORT_RANGE.initial);
+  const [type, setType] = useState<WorkoutType | null>(prefill?.type ?? null);
+  const [durationMin, setDuration] = useState<number>(prefill?.durationMin ?? DURATION_RANGE.initial);
+  const [rpe, setRpe] = useState<number>(prefill?.rpe ?? EFFORT_RANGE.initial);
   const [feel, setFeel] = useState<WorkoutForm["feel"]>("normal");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);

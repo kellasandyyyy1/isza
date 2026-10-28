@@ -5,7 +5,7 @@ import { z } from "zod";
 export const MAX_PUSH_REMINDERS = 20;
 export const MAX_PUSH_BODY_BYTES = 8 * 1024;
 
-export const PUSH_REMINDER_TYPES = ["check-in", "pill", "supplement", "custom", "planner"] as const;
+export const PUSH_REMINDER_TYPES = ["check-in", "pill", "supplement", "custom", "planner", "water"] as const;
 export type PushReminderType = (typeof PUSH_REMINDER_TYPES)[number];
 
 function isTimeZone(value: string): boolean {

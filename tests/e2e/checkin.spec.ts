@@ -81,7 +81,7 @@ test("completes a check-in, then shows Edit check-in", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Edit check-in" })).toBeVisible();
   // The period started today, so the hero switches from no-data to day 1.
   await expect(page.getByText("Day 1", { exact: true })).toBeVisible();
-  await expect(page.getByText("Menstrual", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Cycle ring. Day 1 of about 28, menstrual phase." })).toBeVisible();
 
   const { logs, periods } = await savedLogsAndPeriods(page);
   expect(logs).toHaveLength(1);
@@ -115,6 +115,9 @@ test("saving twice on the same day updates the existing log", async ({ page }) =
   await expect(sheet.getByRole("button", { name: "4", exact: true })).toHaveAttribute("aria-pressed", "true");
   await sheet.getByRole("button", { name: "2", exact: true }).click();
   await sheet.getByRole("button", { name: "Save check-in" }).click();
+  // Low energy with phases hidden (no period logged) brings a supportive note; it keeps the sheet open.
+  await expect(sheet.getByRole("note", { name: "Low days happen" })).toBeVisible();
+  await sheet.getByRole("button", { name: "Done" }).click();
   await expect(sheet).toBeHidden();
 
   const { logs } = await savedLogsAndPeriods(page);

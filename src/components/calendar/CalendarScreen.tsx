@@ -8,8 +8,9 @@ import { ResponsiveSheet } from "@/components/ui/ResponsiveSheet";
 import { Toast } from "@/components/ui/Toast";
 import { useIsDesktop } from "@/components/ui/useIsDesktop";
 import { useLogs, usePeriods, useProfile, useWorkouts } from "@/db/hooks";
-import { buildCalendarContext } from "@/lib/calendar";
+import { buildCalendarContext, legendMarkers, sixWeekGrid } from "@/lib/calendar";
 import { CalendarLegend } from "./CalendarLegend";
+import { CalendarSummary } from "./CalendarSummary";
 import { DayDetails } from "./DayDetails";
 import { LegendSheet } from "./LegendSheet";
 import { MonthGrid } from "./MonthGrid";
@@ -28,6 +29,10 @@ export function CalendarScreen() {
   // Null until the user moves: then the current month and today are used.
   const [month, setMonth] = useState<Date | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  // Edit period opens the day details on the period editor. The count remounts them on every tap.
+  const [details, setDetails] = useState<{ view: "summary" | "period"; count: number }>({ view: "summary", count: 0 });
+  // Null means today, for the summary strip's Log check-in.
+  const [checkInDate, setCheckInDate] = useState<string | null>(null);
   const [sheet, setSheet] = useState<OpenSheet>(null);
   const [toastOpen, setToastOpen] = useState(false);
 
@@ -46,25 +51,38 @@ export function CalendarScreen() {
   const changeMonth = (direction: 1 | -1) => setMonth(addMonths(shownMonth, direction));
   function selectDay(date: string) {
     setSelected(date);
+    setDetails((current) => ({ view: "summary", count: current.count }));
     if (!isSameMonth(parseISO(date), shownMonth)) setMonth(startOfMonth(parseISO(date)));
+    if (!isDesktop) setSheet("day");
+  }
+  // Today's period editor, without moving the grid away from the month on screen.
+  function editTodaysPeriod() {
+    setSelected(today);
+    setDetails((current) => ({ view: "period", count: current.count + 1 }));
     if (!isDesktop) setSheet("day");
   }
   // One sheet at a time: the day sheet closes before the check-in sheet opens.
   const editCheckIn = (date: string) => {
     setSelected(date);
+    setCheckInDate(date);
+    setSheet("check-in");
+  };
+  const logTodaysCheckIn = () => {
+    setCheckInDate(null);
     setSheet("check-in");
   };
   const toggle = (name: Exclude<OpenSheet, null>) => (open: boolean) => setSheet(open ? name : null);
 
-  const details = (
+  const dayDetails = (
     <DayDetails
-      key={selectedDate}
+      key={`${selectedDate}-${details.view}-${details.count}`}
       date={selectedDate}
       context={context}
       periods={periods}
       typicalPeriodLength={typicalPeriodLength}
       onEditCheckIn={editCheckIn}
       showDateHeading={isDesktop}
+      initialView={details.view}
     />
   );
 
@@ -80,14 +98,22 @@ export function CalendarScreen() {
             setMonth(null);
             setSelected(null);
           }}
+          onExplain={() => setSheet("legend")}
         />
         <MonthGrid month={shownMonth} context={context} selected={selectedDate} onSelect={selectDay} onSwipe={changeMonth} />
-        <CalendarLegend showFertile={context.cycle.mode === "standard"} onExplain={() => setSheet("legend")} />
+        <CalendarLegend markers={legendMarkers(context, sixWeekGrid(shownMonth))} onExplain={() => setSheet("legend")} />
+        <CalendarSummary
+          cycle={context.cycle}
+          validCycleCount={context.cycles.length}
+          today={today}
+          onEditPeriod={editTodaysPeriod}
+          onCheckIn={logTodaysCheckIn}
+        />
       </section>
 
       {isDesktop && (
         <Card aria-label="Selected day" role="region">
-          {details}
+          {dayDetails}
         </Card>
       )}
 
@@ -97,12 +123,12 @@ export function CalendarScreen() {
           onOpenChange={toggle("day")}
           title={format(parseISO(selectedDate), "EEEE, MMMM d")}
         >
-          {details}
+          {dayDetails}
         </ResponsiveSheet>
       )}
       <LegendSheet open={sheet === "legend"} onOpenChange={toggle("legend")} />
       <CheckInSheet
-        date={selectedDate}
+        date={checkInDate ?? today}
         today={today}
         open={sheet === "check-in"}
         onOpenChange={toggle("check-in")}

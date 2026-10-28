@@ -12,6 +12,9 @@ const ICONS = [
   { source: "TRAIN-ICON.png", name: "train" },
   { source: "SOCIAL-ICON.png", name: "social" },
   { source: "energy-icon.png", name: "energy" },
+  { source: "security3dicon.png", name: "security" },
+  { source: "heart3dicon.png", name: "heart" },
+  { source: "periodbloodicon.png", name: "blood" },
 ];
 // Icons show at 24 to 36px, so 144px covers a 4x screen.
 const OUT_WIDTH = 144;

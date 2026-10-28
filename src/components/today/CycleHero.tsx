@@ -1,14 +1,24 @@
 import { IconInfoCircle } from "@tabler/icons-react";
 import { Card } from "@/components/ui/Card";
 import { IconButton } from "@/components/ui/IconButton";
-import { IconTile } from "@/components/ui/IconTile";
 import { MascotSlot } from "@/components/ui/MascotSlot";
-import { ProgressRing } from "@/components/ui/ProgressRing";
 import { bandAdvice } from "@/content/guidance";
 import type { TodayView } from "@/lib/today";
+import { CycleDotRing } from "./CycleDotRing";
 import { NextPeriodStat } from "./NextPeriodStat";
 import { ReadinessStat } from "./ReadinessStat";
-import { HERO_RING_SIZE, PHASE_ICONS, PHASE_NAMES } from "./todayConfig";
+import { ReadinessTile } from "./ReadinessTile";
+
+// The ring's largest size: 230px, or what the row's width leaves beside the mascot (75% of the ring, 16px apart).
+// Under 380px wide the readiness tile (7rem) sits beside it instead. cqw is the card's content width.
+const RING_CAP =
+  "[--ring-cap:min(230px,calc((100cqw_-_16px)/1.75))] [@media(max-width:379px)]:[--ring-cap:min(230px,calc(100cqw_-_16px_-_7rem))]";
+// The ring fills the row's height between 150px and the cap. cqh and cqw are the ring row's.
+const RING =
+  "[--ring:clamp(150px,min(100cqh,calc((100cqw_-_16px)/1.75)),230px)] [@media(max-width:379px)]:[--ring:clamp(150px,min(100cqh,calc(100cqw_-_16px_-_7rem)),230px)]";
+// Under 380px wide: readiness sits beside the ring and the mascot hides.
+const NARROW_ONLY = "[@media(min-width:380px)]:hidden";
+const WIDE_ONLY = "[@media(max-width:379px)]:hidden";
 
 interface CycleHeroProps {
   view: TodayView;
@@ -16,62 +26,55 @@ interface CycleHeroProps {
   onExplainHiddenPhases: () => void;
 }
 
-// Standard, hormonal and irregular modes. Without a phase the ring shows only the cycle day.
-// Under 1024px the hero takes the space left on the Today screen. Its top row is a size container,
-// so the ring and mascot shrink to fit it instead of pushing the screen into scrolling.
+// Standard, hormonal and irregular modes. Three blocks 20px apart: the ring with the mascot for the phase, the
+// next period, then readiness. The card is as tall as its content with the ring at its largest. When Today is
+// short on room the card shrinks, and only the ring row gives way, down to a 150px ring.
 export function CycleHero({ view, onOpenReadiness, onExplainHiddenPhases }: CycleHeroProps) {
-  const { cycle, readiness, ringPercent, nextPeriodText, nextPeriodRange, mood } = view;
+  const { cycle, readiness } = view;
   const phase = cycle.phase;
-  const advice = bandAdvice[readiness.band];
-  const ringLabel = phase ? `Cycle day ${cycle.cycleDay}, ${PHASE_NAMES[phase]} phase` : `Cycle day ${cycle.cycleDay}`;
+  const late = view.lateDays !== null;
+  const rangeCaption = [view.nextPeriodRange, view.nextPeriodBasis].filter(Boolean).join(" · ");
+  const captions = late ? view.lateNotes : view.nextPeriodRange ? [rangeCaption] : [];
 
   return (
-    <Card
-      tone={phase ?? undefined}
-      flat
-      className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto_auto] gap-2 lg:flex-none lg:grid-rows-none [@media(min-height:700px)]:gap-3"
-    >
-      <div className="flex min-h-0 items-center gap-3 [container-type:size] lg:[container-type:normal]">
-        <ProgressRing
-          value={ringPercent ?? 0}
-          size={196}
-          strokeWidth={16}
-          displaySize={HERO_RING_SIZE}
-          color={phase ?? "ink"}
-          label={ringLabel}
-        >
-          <span className="flex flex-col items-center">
-            {phase && (
-              <IconTile
-                icon={PHASE_ICONS[phase]}
-                tone={phase}
-                size="sm"
-                // Hidden in a short row so the ring can shrink; the phase name stays as text.
-                className="mb-1 [@container(max-height:119px)]:hidden"
+    <Card tone={phase ?? undefined} flat className="min-h-0 shrink [container-type:inline-size] lg:shrink-0">
+      {/* The first row is the ring's: as large as the cap allows, smaller only when the card is squeezed. */}
+      <div className={`grid h-full grid-rows-[minmax(150px,var(--ring-cap))] gap-5 ${RING_CAP}`}>
+        <div className="flex min-h-0 items-center justify-center [container-type:size]">
+          <div className={`flex items-end gap-4 ${RING}`}>
+            <CycleDotRing cycleState={cycle} size="var(--ring)" />
+            {/* 75% of the ring, 100 to 170px, standing on the ring's lower edge. */}
+            <div
+              className={`shrink-0 ${WIDE_ONLY}`}
+              style={{ width: "clamp(100px, calc(var(--ring) * 0.75), 170px)", aspectRatio: "1" }}
+            >
+              {/* Still when Today opens: no cheer hop, whatever the readiness band. */}
+              <MascotSlot pose={phase ?? "today"} size="fill" motion="idle" priority />
+            </div>
+            <div className={`w-28 shrink-0 self-center ${NARROW_ONLY}`}>
+              <ReadinessTile readiness={readiness} onOpen={onOpenReadiness} />
+            </div>
+          </div>
+        </div>
+
+        {(view.nextPeriodText || !phase) && (
+          <div className="flex items-start justify-between gap-2">
+            {view.nextPeriodText && <NextPeriodStat text={view.nextPeriodText} captions={captions} late={late} />}
+            {!phase && (
+              <IconButton
+                icon={IconInfoCircle}
+                aria-label="Why phases are hidden"
+                onClick={onExplainHiddenPhases}
+                className="-my-2.5 -mr-2.5 ml-auto"
               />
             )}
-            <span className="text-h1 text-ink">Day {cycle.cycleDay}</span>
-            {phase && <span className="text-small text-ink-muted">{PHASE_NAMES[phase]}</span>}
-          </span>
-        </ProgressRing>
-        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-2">
-          <MascotSlot
-            pose="today"
-            size="sm"
-            motion={mood}
-            phase={phase}
-            priority
-            // Hidden when the row is too short to hold her above the next period line.
-            className="[@container(max-height:179px)]:hidden [@media(max-height:639px)]:hidden"
-          />
-          {nextPeriodText && <NextPeriodStat text={nextPeriodText} range={nextPeriodRange} />}
-          {phase === null && (
-            <IconButton icon={IconInfoCircle} aria-label="Why phases are hidden" onClick={onExplainHiddenPhases} />
-          )}
+          </div>
+        )}
+
+        <div className={WIDE_ONLY}>
+          <ReadinessStat readiness={readiness} advice={bandAdvice[readiness.band]} onOpen={onOpenReadiness} />
         </div>
       </div>
-      <ReadinessStat readiness={readiness} onOpen={onOpenReadiness} />
-      <p className="text-small text-ink">{advice}</p>
     </Card>
   );
 }

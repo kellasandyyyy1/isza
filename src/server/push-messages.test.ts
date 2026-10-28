@@ -5,20 +5,23 @@ import { TEST_MESSAGE, pushMessage, pushUrl } from "./push-messages";
 const FORBIDDEN = /period|cycle|ovulation|symptom|bleeding/i;
 
 describe("push messages", () => {
-  it("never mention periods, cycles, ovulation, symptoms or bleeding in any mode", () => {
+  // The normal title is the app name, Iszacycle, which contains "cycle". Everything else, and the whole of a
+  // discreet notification, never mentions periods, cycles, ovulation, symptoms or bleeding.
+  it("never mention periods, cycles, ovulation, symptoms or bleeding, apart from the app name as the title", () => {
     for (const type of PUSH_REMINDER_TYPES) {
-      for (const discreet of [false, true]) {
-        const { title, body } = pushMessage(type, discreet);
-        expect(`${title} ${body}`, `${type} discreet=${discreet}`).not.toMatch(FORBIDDEN);
-      }
+      const normal = pushMessage(type, false);
+      expect(normal.title, type).toBe("Iszacycle");
+      expect(normal.body, type).not.toMatch(FORBIDDEN);
+      const discreet = pushMessage(type, true);
+      expect(`${discreet.title} ${discreet.body}`, `${type} discreet`).not.toMatch(FORBIDDEN);
     }
-    expect(`${TEST_MESSAGE.title} ${TEST_MESSAGE.body}`).not.toMatch(FORBIDDEN);
+    expect(TEST_MESSAGE.body).not.toMatch(FORBIDDEN);
   });
 
   it("use the fixed texts", () => {
-    expect(pushMessage("check-in", false)).toEqual({ title: "Isza", body: "Time for your daily check-in." });
-    expect(pushMessage("pill", false)).toEqual({ title: "Isza", body: "You have a reminder." });
-    expect(pushMessage("planner", false)).toEqual({ title: "Isza", body: "Take a look at your planner today." });
+    expect(pushMessage("check-in", false)).toEqual({ title: "Iszacycle", body: "Time for your daily check-in." });
+    expect(pushMessage("pill", false)).toEqual({ title: "Iszacycle", body: "You have a reminder." });
+    expect(pushMessage("planner", false)).toEqual({ title: "Iszacycle", body: "Take a look at your planner today." });
     for (const type of PUSH_REMINDER_TYPES) {
       expect(pushMessage(type, true)).toEqual({ title: "Reminder", body: "You have a new reminder." });
     }

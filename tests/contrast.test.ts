@@ -5,6 +5,7 @@ import {
   COLOR_TOKENS,
   CONTRAST_PAIRS,
   contrastRatio,
+  FERTILE_BAND_PERCENT,
   mixHex,
   PHASE_COLORS,
   PHASE_TINT_PERCENT,
@@ -89,6 +90,25 @@ describe("contrast", () => {
       }
     }
   }
+
+  // The band is see-through: checked over the page and over a selected day, the two places it sits.
+  for (const theme of ["light", "dark"] as const) {
+    for (const base of ["bg", "selected-bg"] as const) {
+      it(`${theme}: --fertile-ink on the fertile band over --${base} is at least ${TEXT_RATIO}:1`, () => {
+        const tokens = COLOR_TOKENS[theme];
+        const band = mixHex(PHASE_COLORS.ovulatory, tokens[base], FERTILE_BAND_PERCENT[theme]);
+        expect(contrastRatio(tokens["fertile-ink"], band)).toBeGreaterThanOrEqual(TEXT_RATIO);
+      });
+    }
+  }
+
+  it("mixes the fertile band at the same share as globals.css", () => {
+    for (const { theme, label, body } of BLOCKS) {
+      expect(body, label).toContain(
+        `--fertile-band: color-mix(in srgb, var(--phase-ovulatory) ${FERTILE_BAND_PERCENT[theme]}%, transparent);`,
+      );
+    }
+  });
 
   it("computes known ratios", () => {
     expect(contrastRatio("#000000", "#FFFFFF")).toBeCloseTo(21, 5);

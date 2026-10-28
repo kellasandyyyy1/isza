@@ -1,5 +1,6 @@
 export type ThemePreference = "system" | "light" | "dark";
 
+// Legacy name from before Iszacycle, kept so saved theme choices carry over.
 export const THEME_STORAGE_KEY = "isza-theme";
 
 // Anything other than a saved "light" or "dark" means follow the system setting.

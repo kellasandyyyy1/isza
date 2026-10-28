@@ -2,8 +2,18 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { allTables, db } from "./db";
 import {
+  DEFAULT_MEAL_SETTINGS,
   DataValidationError,
   RecordNotFoundError,
+  addMealHistory,
+  getMealSettings,
+  listMealHistory,
+  saveMealSettings,
+  swapMeal,
+  changeWaterCount,
+  getWaterLog,
+  getWaterSettings,
+  saveWaterSettings,
   addPeriod,
   addReminder,
   addSupply,
@@ -54,6 +64,8 @@ async function fillEveryTable() {
   await addReminder({ type: "check-in", label: "Evening check-in", time: "20:30", days: [0, 1, 2], enabled: true });
   await dismissFlag("long-cycle", 30, new Date(2026, 8, 10));
   await db.settings.put({ key: "units", value: "metric" });
+  await addMealHistory({ date: "2026-09-04", mealId: "tapsilog", action: "cooked" });
+  await changeWaterCount("2026-09-04", 1);
 }
 
 beforeEach(async () => {
@@ -283,10 +295,106 @@ describe("push device settings", () => {
 });
 
 describe("deleteAll", () => {
-  it("empties every table", async () => {
+  it("empties every table, meal history included", async () => {
     await fillEveryTable();
     for (const table of allTables()) expect(await table.count()).toBeGreaterThan(0);
     await deleteAll();
     for (const table of allTables()) expect(await table.count()).toBe(0);
+  });
+});
+
+describe("meal ideas", () => {
+  it("starts from the defaults and saves every setting", async () => {
+    expect(await getMealSettings()).toEqual(DEFAULT_MEAL_SETTINGS);
+    expect(DEFAULT_MEAL_SETTINGS).toEqual({
+      mealSuggestionsEnabled: true,
+      maxCostTier: 2,
+      excludedMealIds: [],
+      cuisinePreference: "mixed",
+    });
+    const changed = {
+      mealSuggestionsEnabled: false,
+      maxCostTier: 1 as const,
+      excludedMealIds: ["tokwat-gulay", "tuna-sandwich"],
+      cuisinePreference: "filipino" as const,
+    };
+    await saveMealSettings(changed);
+    expect(await getMealSettings()).toEqual(changed);
+  });
+
+  it("falls back to the defaults for values it cannot read", async () => {
+    await db.settings.bulkPut([
+      { key: "maxCostTier", value: 9 },
+      { key: "excludedMealIds", value: "not json" },
+      { key: "cuisinePreference", value: "french" },
+    ]);
+    expect(await getMealSettings()).toEqual(DEFAULT_MEAL_SETTINGS);
+  });
+
+  it("keeps every action of a day in the order it happened", async () => {
+    await addMealHistory({ date: "2026-10-27", mealId: "tokwat-gulay", action: "skipped" });
+    await addMealHistory({ date: "2026-10-26", mealId: "arroz-caldo", action: "shown" });
+    await addMealHistory({ date: "2026-10-27", mealId: "tuna-sandwich", action: "shown" });
+    await addMealHistory({ date: "2026-10-27", mealId: "tuna-sandwich", action: "cooked" });
+    const rows = await listMealHistory("2026-10-26", "2026-10-27");
+    expect(rows.map(({ date, mealId, action }) => [date, mealId, action])).toEqual([
+      ["2026-10-26", "arroz-caldo", "shown"],
+      ["2026-10-27", "tokwat-gulay", "skipped"],
+      ["2026-10-27", "tuna-sandwich", "shown"],
+      ["2026-10-27", "tuna-sandwich", "cooked"],
+    ]);
+  });
+
+  it("swaps a meal in one write: the skip, the next meal and the excluded list", async () => {
+    await addMealHistory({ date: "2026-10-27", mealId: "tokwat-gulay", action: "shown" });
+    await swapMeal("2026-10-27", "tokwat-gulay", "arroz-caldo", { ...DEFAULT_MEAL_SETTINGS, excludedMealIds: ["tokwat-gulay"] });
+    const rows = await listMealHistory("2026-10-27", "2026-10-27");
+    expect(rows.map(({ mealId, action }) => [mealId, action])).toEqual([
+      ["tokwat-gulay", "shown"],
+      ["tokwat-gulay", "skipped"],
+      ["arroz-caldo", "shown"],
+    ]);
+    expect((await getMealSettings()).excludedMealIds).toEqual(["tokwat-gulay"]);
+  });
+
+  it("rejects an unknown action", async () => {
+    await expect(addMealHistory({ date: "2026-10-27", mealId: "arroz-caldo", action: "eaten" as "shown" })).rejects.toThrow(
+      DataValidationError,
+    );
+  });
+});
+
+describe("water", () => {
+  it("counts taps on one row per day, never below 0", async () => {
+    const now = new Date(2026, 9, 27, 10, 0);
+    await changeWaterCount("2026-10-27", 1, now);
+    await changeWaterCount("2026-10-27", 1, now);
+    await changeWaterCount("2026-10-27", 1, now);
+    await changeWaterCount("2026-10-27", -1, now);
+    expect(await getWaterLog("2026-10-27")).toEqual({ date: "2026-10-27", count: 2, updatedAt: now.toISOString() });
+    expect(await db.waterLogs.count()).toBe(1);
+
+    for (let tap = 0; tap < 4; tap++) await changeWaterCount("2026-10-27", -1, now);
+    expect((await getWaterLog("2026-10-27"))?.count).toBe(0);
+    expect(await getWaterLog("2026-10-28")).toBeNull();
+  });
+
+  it("starts with reminders off and saves every setting", async () => {
+    const settings = await getWaterSettings();
+    expect(settings).toEqual({
+      waterRemindersEnabled: false,
+      waterWindowStart: "08:00",
+      waterWindowEnd: "20:00",
+      waterIntervalHours: 3,
+      waterGlassMl: 250,
+    });
+    const changed = { ...settings, waterRemindersEnabled: true, waterWindowStart: "09:30", waterIntervalHours: 2 as const };
+    await saveWaterSettings(changed);
+    expect(await getWaterSettings()).toEqual(changed);
+  });
+
+  it("rejects a window time that is not a clock time", async () => {
+    const settings = await getWaterSettings();
+    await expect(saveWaterSettings({ ...settings, waterWindowEnd: "25:00" })).rejects.toThrow(DataValidationError);
   });
 });

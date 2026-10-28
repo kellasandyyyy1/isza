@@ -7,15 +7,15 @@ import { readColorToken } from "@/lib/tokens";
 export default function manifest(): MetadataRoute.Manifest {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
   return {
-    name: "Isza",
-    short_name: "Isza",
+    name: "Iszacycle",
+    short_name: "Iszacycle",
     description: "Sync your training, food and rest with your cycle.",
     start_url: "/today",
     scope: "/",
     display: "standalone",
     theme_color: readColorToken(css, "bg"),
     background_color: readColorToken(css, "bg"),
-    // Placeholder icons from the wordmark. Replace with the final logo later.
+    // Built from assets/icons/app-logo.png by `npm run icons`.
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

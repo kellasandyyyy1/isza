@@ -9,7 +9,7 @@ const day = (offset: number) => format(addDays(new Date(), offset), "yyyy-MM-dd"
 
 async function openMe(page: Page) {
   await page.goto("/me");
-  await expect(page.getByRole("button", { name: "About Isza" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "About Iszacycle" })).toBeVisible();
 }
 
 async function readSettings(page: Page) {
@@ -33,7 +33,7 @@ async function exportBackup(page: Page, name: string, outputPath: (name: string)
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download backup" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe(`isza-backup-${day(0)}.json`);
+  expect(download.suggestedFilename()).toBe(`iszacycle-backup-${day(0)}.json`);
   const path = outputPath(name);
   await download.saveAs(path);
   return { path, json: JSON.parse(await readFile(path, "utf8")) as unknown };
@@ -45,7 +45,7 @@ test("lists the groups and rows", async ({ page }) => {
   for (const group of ["Daily", "App", "Privacy", "About"]) {
     await expect(page.getByRole("heading", { name: group })).toBeVisible();
   }
-  for (const row of ["Reminders", "Supplies", "Profile", "Appearance", "App lock", "Export data", "Import data", "Delete all data", "About Isza"]) {
+  for (const row of ["Reminders", "Supplies", "Profile", "Appearance", "App lock", "Export data", "Import data", "Delete all data", "About Iszacycle"]) {
     const button = page.getByRole("button", { name: new RegExp(`^${row}`) });
     await expect(button).toBeVisible();
     expect((await button.boundingBox())?.height).toBe(48);
@@ -134,7 +134,7 @@ test("PIN lock stores only a salted hash and locks on open", async ({ page }) =>
   await expect(lock.getByText("That PIN did not match. Try again.")).toBeVisible();
   await lock.getByLabel("PIN").fill("1234");
   await expect(lock).toBeHidden();
-  await expect(page.getByRole("button", { name: "About Isza" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "About Iszacycle" })).toBeVisible();
 });
 
 test("locks again after 5 minutes in the background, not before", async ({ page }) => {
@@ -182,7 +182,7 @@ test("Forgot PIN only offers deleting all data", async ({ page }) => {
   await forgot.getByLabel("Type DELETE to confirm").fill("DELETE");
   await forgot.getByRole("button", { name: "Delete all data" }).click();
   await expect(page).toHaveURL(/\/onboarding$/);
-  await expect(page.getByRole("heading", { name: "Your cycle, your rhythm." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Because “why am I like this today” deserves an answer." })).toBeVisible();
   expect(await readSettings(page)).toEqual([]);
 });
 
@@ -253,10 +253,10 @@ test("profile, appearance and about", async ({ page }) => {
   await page.getByRole("tab", { name: "System" }).click();
   await page.getByRole("button", { name: "Close" }).click();
 
-  await page.getByRole("button", { name: "About Isza" }).click();
-  const about = page.getByRole("dialog", { name: "About Isza" });
+  await page.getByRole("button", { name: "About Iszacycle" }).click();
+  const about = page.getByRole("dialog", { name: "About Iszacycle" });
   await expect(about.getByText(/^Version \d+\.\d+\.\d+$/)).toBeVisible();
-  await expect(about.getByText("Isza is not a medical device or a contraceptive.")).toBeVisible();
+  await expect(about.getByText("Iszacycle is not a medical device or a contraceptive.")).toBeVisible();
   await expect(about.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
   await expect(about.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
 

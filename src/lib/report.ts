@@ -16,7 +16,7 @@ export const CONTRACEPTION_LABELS: Record<Contraception, string> = {
 };
 
 export const REPORT_FOOTER =
-  "Isza is not a medical device or a contraceptive. This summary is based on self-reported data.";
+  "Iszacycle is not a medical device or a contraceptive. This summary is based on self-reported data.";
 
 const roundToTenth = (value: number) => Math.round(value * 10) / 10;
 
@@ -49,7 +49,7 @@ export interface ReportData {
   cycleLength: LengthStats | null;
   periodLength: LengthStats | null;
   cycles: CycleBar[];
-  // False in hormonal and irregular modes, where Isza does not assign phases.
+  // False in hormonal and irregular modes, where Iszacycle does not assign phases.
   showPhases: boolean;
   symptoms: SymptomRow[];
   flags: { title: string; body: string }[];
@@ -119,5 +119,5 @@ export function buildReport({ periods, profile, logs, today, cycleCount, include
 }
 
 export function reportFileName(today: string): string {
-  return `isza-report-${today}.pdf`;
+  return `iszacycle-report-${today}.pdf`;
 }

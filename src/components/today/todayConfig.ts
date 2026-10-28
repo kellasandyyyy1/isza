@@ -22,6 +22,7 @@ import type { ReadinessBand } from "@/lib/readiness";
 export type PlanTopic = keyof GuidanceEntry;
 
 // Each topic has its own tile color, so the carousel reads at a glance. A topic with art shows the 3D image instead.
+// Water is the sixth card, with the water mascot, built in components/water.
 export const PLAN_TOPICS: { key: PlanTopic; title: string; icon: Icon; tone: IconTileTone; art?: ArtIconName }[] = [
   { key: "train", title: "Train", icon: IconBarbell, tone: "success", art: "train" },
   { key: "food", title: "Food", icon: IconSalad, tone: "follicular", art: "food" },
@@ -43,11 +44,6 @@ export const PHASE_NAMES: Record<Phase, string> = {
   ovulatory: "Ovulatory",
   luteal: "Luteal",
 };
-
-// The ring fills the height of the hero's top row (a size container), at most half its width so the
-// next period line beside it has room, between 88px and 184px. Without a container, as on desktop,
-// cq units fall back to the viewport, so it is 184px.
-export const HERO_RING_SIZE = "clamp(88px, min(100cqh, 50cqw), 184px)";
 
 // The readiness band's icon, ring color and tile color. The band name is always shown too, so color is never the only signal.
 export const BAND_STYLES: Record<ReadinessBand, { icon: Icon; ring: ProgressRingColor; tone: IconTileTone }> = {

@@ -1,27 +1,30 @@
 import { IconInfoCircle } from "@tabler/icons-react";
 import { IconButton } from "@/components/ui/IconButton";
-import { MarkerSwatch, type MarkerKind } from "./MarkerSwatch";
+import type { LegendMarker } from "@/lib/calendar";
+import { MarkerSwatch } from "./MarkerSwatch";
 
-const ITEMS: { kind: MarkerKind; label: string }[] = [
-  { kind: "logged", label: "Period" },
-  { kind: "predicted", label: "Due" },
-  { kind: "fertile", label: "Fertile" },
-  { kind: "check-in", label: "Check-in" },
-];
+const LABELS: Record<LegendMarker, string> = {
+  logged: "Period",
+  predicted: "Predicted",
+  fertile: "Fertile (estimate)",
+  "check-in": "Check-in",
+};
 
-// One line. The fertile marker only appears in standard mode, so its legend item follows it.
-export function CalendarLegend({ showFertile, onExplain }: { showFertile: boolean; onExplain: () => void }) {
+// Only the markers on the days in the grid, in a fixed order. Chips wrap to a second line when needed.
+// Under 1024px it always keeps room for two lines of chips, so the grid above keeps its height in every month.
+// Under 700px tall it hides to give the grid its 44px rows; the month header's info button opens the same sheet.
+export function CalendarLegend({ markers, onExplain }: { markers: LegendMarker[]; onExplain: () => void }) {
   return (
-    <div className="flex shrink-0 items-center justify-between gap-1">
-      <ul data-legend className="flex min-w-0 items-center gap-1.5 overflow-hidden text-caption text-ink-muted">
-        {ITEMS.filter((item) => showFertile || item.kind !== "fertile").map(({ kind, label }) => (
-          <li key={kind} className="flex shrink-0 items-center gap-0.5">
+    <div className="flex min-h-14.5 shrink-0 items-center justify-between gap-2 lg:min-h-0 [@media(max-height:699px)]:hidden">
+      <ul data-legend className="flex min-w-0 flex-wrap items-center gap-1.5">
+        {markers.map((kind) => (
+          <li key={kind} className="flex items-center gap-1 rounded-pill bg-surface-2 py-1 pr-2.5 pl-1.5 text-caption text-ink">
             <MarkerSwatch kind={kind} />
-            {label}
+            {LABELS[kind]}
           </li>
         ))}
       </ul>
-      <IconButton icon={IconInfoCircle} aria-label="What the markers mean" onClick={onExplain} />
+      <IconButton icon={IconInfoCircle} aria-label="What do these mean?" onClick={onExplain} className="ml-auto" />
     </div>
   );
 }

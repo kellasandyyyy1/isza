@@ -5,6 +5,7 @@ import type { CycleState } from "./cycle";
 import { buildSyncBody, plannerPushReminder, recurringPushReminders, urlBase64ToUint8Array } from "./push-client";
 import { syncBodySchema } from "./pushApi";
 import { makeProfile } from "./testFixtures";
+import { DEFAULT_WATER_SETTINGS } from "./water";
 
 const reminder = (id: number, fields: Partial<Reminder> = {}): Reminder => ({
   id,
@@ -62,6 +63,7 @@ describe("buildSyncBody", () => {
     timezone: "Asia/Manila",
     periods: demo.periods,
     logs: demo.dailyLogs,
+    water: DEFAULT_WATER_SETTINGS,
     now: new Date(2026, 9, 26, 9, 0),
   };
 
@@ -83,6 +85,37 @@ describe("buildSyncBody", () => {
       reminders: [],
     });
     expect(body).toMatchObject({ discreet: true, reminders: [] });
+  });
+
+  it("adds water reminders as times only, every day, while reminders are on", () => {
+    const water = { ...DEFAULT_WATER_SETTINGS, waterRemindersEnabled: true };
+    const body = buildSyncBody({ ...base, profile: demo.profile, reminders: [], water });
+    expect(syncBodySchema.safeParse(body).success).toBe(true);
+    const waterReminders = body.reminders.filter((item) => item.reminderType === "water");
+    expect(waterReminders.map((item) => (item.kind === "recurring" ? item.timeLocal : null))).toEqual([
+      "08:00",
+      "11:00",
+      "14:00",
+      "17:00",
+      "20:00",
+    ]);
+    for (const item of waterReminders) {
+      // Nothing but the kind, the type, the time and the days.
+      expect(Object.keys(item).sort()).toEqual(["days", "kind", "reminderType", "timeLocal"]);
+      expect(item).toMatchObject({ kind: "recurring", days: [0, 1, 2, 3, 4, 5, 6] });
+    }
+    // No count, glass size or log ever leaves the device.
+    expect(JSON.stringify(body)).not.toMatch(/count|glass|ml|updatedAt/i);
+  });
+
+  it("drops the water reminders while their switch is off", () => {
+    for (const water of [
+      { ...DEFAULT_WATER_SETTINGS, waterRemindersEnabled: false },
+      DEFAULT_WATER_SETTINGS,
+    ]) {
+      const body = buildSyncBody({ ...base, profile: demo.profile, reminders: [], water });
+      expect(body.reminders.filter((item) => item.reminderType === "water")).toEqual([]);
+    }
   });
 
   it("caps the list at 20 reminders", () => {

@@ -10,12 +10,22 @@ export type CycleMode = "standard" | "hormonal" | "irregular" | "no-data";
 export interface CycleState {
   mode: CycleMode;
   cycleDay: number | null;
+  // The start date of the current cycle: the latest period start. Null without data.
+  cycleStart: string | null;
   phase: Phase | null;
   isLateLuteal: boolean;
   nextPeriod: { start: string; earliest: string; latest: string } | null;
   ovulationDay: number | null;
   fertileWindow: { start: string; end: string } | null;
   confidence: "high" | "medium" | "low";
+  // True while fewer than 2 valid cycle lengths exist, so the average is a default or her own guess.
+  cycleLengthIsEstimate: boolean;
+  // Rules 2 and 14, for the cycle ring: the average cycle length, the last menstrual cycle day (logged end,
+  // else the average period length), and how many days of the current period are logged (through today while
+  // it has no end date). Null without data.
+  avgCycleLength: number | null;
+  menstrualEnd: number | null;
+  periodLoggedDays: number | null;
   status: "ok" | "late" | "no-data";
 }
 
@@ -29,7 +39,7 @@ export interface CycleInput {
 
 const MIN_VALID_CYCLE_LENGTH = 15;
 const MAX_VALID_CYCLE_LENGTH = 90;
-const HISTORY_SIZE = 6;
+export const HISTORY_SIZE = 6;
 const DEFAULT_CYCLE_LENGTH = 28;
 const DEFAULT_PERIOD_LENGTH = 5;
 const LUTEAL_PHASE_DAYS = 14;
@@ -168,12 +178,17 @@ export function detectBbtShift(logs: DailyLog[], cycleStart: string, today: stri
 const NO_DATA_STATE: CycleState = {
   mode: "no-data",
   cycleDay: null,
+  cycleStart: null,
   phase: null,
   isLateLuteal: false,
   nextPeriod: null,
   ovulationDay: null,
   fertileWindow: null,
   confidence: "low",
+  cycleLengthIsEstimate: true,
+  avgCycleLength: null,
+  menstrualEnd: null,
+  periodLoggedDays: null,
   status: "no-data",
 };
 
@@ -209,7 +224,25 @@ export function computeCycleState({ periods, profile, logs, today }: CycleInput)
         ? "medium"
         : "low";
 
-  const withoutPhases = { cycleDay, phase: null, isLateLuteal: false, nextPeriod, ovulationDay: null, fertileWindow: null, status };
+  const cycleLengthIsEstimate = validCount < 2;
+  const menstrualEnd = menstrualEndDay(latest, stats.avgPeriodLength);
+  const ringFields = {
+    avgCycleLength: stats.avgCycleLength,
+    menstrualEnd,
+    periodLoggedDays: periodDuration(latest) ?? cycleDay,
+  };
+  const withoutPhases = {
+    cycleDay,
+    cycleStart: latest.startDate,
+    phase: null,
+    isLateLuteal: false,
+    nextPeriod,
+    ovulationDay: null,
+    fertileWindow: null,
+    cycleLengthIsEstimate,
+    ...ringFields,
+    status,
+  };
 
   // Rule 9.
   if (profile && HORMONAL_CONTRACEPTION.includes(profile.contraception)) {
@@ -242,14 +275,24 @@ export function computeCycleState({ periods, profile, logs, today }: CycleInput)
   };
 
   // Rules 8 and 14.
-  const phase =
-    status === "late"
-      ? "luteal"
-      : phaseForCycleDay(cycleDay, menstrualEndDay(latest, stats.avgPeriodLength), ovulationDay);
+  const phase = status === "late" ? "luteal" : phaseForCycleDay(cycleDay, menstrualEnd, ovulationDay);
   const daysUntilNext = daysBetween(today, nextPeriod.start);
   const isLateLuteal = phase === "luteal" && daysUntilNext >= 1 && daysUntilNext <= LATE_LUTEAL_DAYS;
 
-  return { mode: "standard", cycleDay, phase, isLateLuteal, nextPeriod, ovulationDay, fertileWindow, confidence, status };
+  return {
+    mode: "standard",
+    cycleDay,
+    cycleStart: latest.startDate,
+    phase,
+    isLateLuteal,
+    nextPeriod,
+    ovulationDay,
+    fertileWindow,
+    confidence,
+    cycleLengthIsEstimate,
+    ...ringFields,
+    status,
+  };
 }
 
 // A finished cycle: from one period start to the day before the next, with a valid length.

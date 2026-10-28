@@ -8,6 +8,15 @@ import {
   type Icon,
 } from "@tabler/icons-react";
 import type { Workout, WorkoutType } from "@/db/schema";
+import type { Phase } from "@/lib/cycle";
+
+// Small phase dots. They always come with the phase name, in text or in an aria-label.
+export const PHASE_DOTS: Record<Phase, string> = {
+  menstrual: "bg-phase-menstrual",
+  follicular: "bg-phase-follicular",
+  ovulatory: "bg-phase-ovulatory",
+  luteal: "bg-phase-luteal",
+};
 
 export const WORKOUT_TYPES: { value: WorkoutType; label: string; icon: Icon }[] = [
   { value: "strength", label: "Strength", icon: IconBarbell },

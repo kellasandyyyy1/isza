@@ -186,18 +186,40 @@ export interface DayMarkers {
   loggedPeriod: boolean;
   predictedPeriod: boolean;
   fertile: boolean;
+  // The first and last day of a fertile window, where the band is rounded.
+  fertileStart: boolean;
+  fertileEnd: boolean;
   checkIn: boolean;
   today: boolean;
 }
 
 export function markersFor(context: CalendarContext, date: string): DayMarkers {
+  const fertile = context.fertileDays.has(date);
   return {
     loggedPeriod: context.loggedPeriodDays.has(date),
     predictedPeriod: context.predictedPeriodDays.has(date),
-    fertile: context.fertileDays.has(date),
+    fertile,
+    fertileStart: fertile && !context.fertileDays.has(shiftDate(date, -1)),
+    fertileEnd: fertile && !context.fertileDays.has(shiftDate(date, 1)),
     checkIn: context.logsByDate.has(date),
     today: date === context.today,
   };
+}
+
+export type LegendMarker = "logged" | "predicted" | "fertile" | "check-in";
+const LEGEND_ORDER: LegendMarker[] = ["logged", "predicted", "fertile", "check-in"];
+
+// The legend items for the days on screen: only markers that at least one of them carries, in legend order.
+export function legendMarkers(context: CalendarContext, dates: string[]): LegendMarker[] {
+  const shown = new Set<LegendMarker>();
+  for (const date of dates) {
+    const markers = markersFor(context, date);
+    if (markers.loggedPeriod) shown.add("logged");
+    if (markers.predictedPeriod) shown.add("predicted");
+    if (markers.fertile) shown.add("fertile");
+    if (markers.checkIn) shown.add("check-in");
+  }
+  return LEGEND_ORDER.filter((marker) => shown.has(marker));
 }
 
 // Period editing

@@ -1,9 +1,12 @@
 "use client";
 
+import { IconChevronLeft } from "@tabler/icons-react";
 import { format } from "date-fns";
+import { motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { IconButton } from "@/components/ui/IconButton";
 import { StepDots } from "@/components/ui/StepDots";
 import { completeOnboarding } from "@/db/repo";
 import {
@@ -14,23 +17,43 @@ import {
   canContinue,
   initialOnboardingAnswers,
   type OnboardingAnswers,
+  type OnboardingStep,
 } from "@/lib/onboarding";
 import { ActivityStep } from "./ActivityStep";
 import { ContraceptionStep } from "./ContraceptionStep";
 import { GoalsStep } from "./GoalsStep";
 import { LastPeriodStep } from "./LastPeriodStep";
 import { LengthStep } from "./LengthStep";
+import { NameStep } from "./NameStep";
 import { PrivacyStep } from "./PrivacyStep";
 import { WelcomeStep } from "./WelcomeStep";
 import { WorkoutTypesStep } from "./WorkoutTypesStep";
 
 const todayIso = () => format(new Date(), "yyyy-MM-dd");
 
-// One question per screen. Answers stay in state and are saved only on the last screen.
+// The short label over each question, so she always knows which part she is in.
+const SECTIONS: Record<OnboardingStep, string> = {
+  welcome: "",
+  name: "About you",
+  goals: "About you",
+  "last-period": "Your cycle",
+  "cycle-length": "Your cycle",
+  "period-length": "Your cycle",
+  contraception: "Your cycle",
+  activity: "Your training",
+  workouts: "Your training",
+  privacy: "Almost done",
+};
+
+// One question per screen. Back sits at the top left with the progress; the one primary button sits at the
+// bottom, in thumb reach. Answers stay in state and are saved only on the last screen.
 export function OnboardingFlow() {
   const router = useRouter();
   const headingId = useId();
+  const reduced = useReducedMotion() === true;
   const [stepIndex, setStepIndex] = useState(0);
+  // 1 going forward, -1 going back: each screen slides in from the side she is heading to.
+  const [direction, setDirection] = useState<1 | -1>(1);
   const [answers, setAnswers] = useState<OnboardingAnswers>(initialOnboardingAnswers);
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -49,6 +72,7 @@ export function OnboardingFlow() {
 
   function goTo(index: number) {
     movedRef.current = true;
+    setDirection(index > stepIndex ? 1 : -1);
     setStepIndex(index);
   }
 
@@ -69,6 +93,16 @@ export function OnboardingFlow() {
     switch (step) {
       case "welcome":
         return <WelcomeStep headingId={headingId} />;
+      case "name":
+        return (
+          <NameStep
+            {...props}
+            onSkip={() => {
+              setAnswers((a) => ({ ...a, name: "" }));
+              goTo(stepIndex + 1);
+            }}
+          />
+        );
       case "goals":
         return <GoalsStep {...props} />;
       case "last-period":
@@ -121,11 +155,35 @@ export function OnboardingFlow() {
 
   return (
     <div className="grid h-dvh grid-rows-[auto_minmax(0,1fr)_auto] pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
-      <div className="mx-auto w-full max-w-md px-4 pt-4">
-        <StepDots total={ONBOARDING_STEPS.length} step={stepIndex + 1} />
-      </div>
+      {/* The welcome screen is the hero alone: no progress yet. */}
+      {isFirst ? (
+        <div />
+      ) : (
+        <header className="mx-auto w-full max-w-md px-2 pt-2">
+          <div className="flex items-center gap-2">
+            <IconButton icon={IconChevronLeft} aria-label="Back" disabled={saving} onClick={() => goTo(stepIndex - 1)} />
+            <StepDots total={ONBOARDING_STEPS.length} step={stepIndex + 1} />
+          </div>
+          <p className="flex justify-between px-2 pt-2 text-caption text-ink-muted">
+            <span>{SECTIONS[step]}</span>
+            <span>
+              {stepIndex + 1} of {ONBOARDING_STEPS.length}
+            </span>
+          </p>
+        </header>
+      )}
 
-      <main className="mx-auto w-full max-w-md overflow-y-auto px-4 pt-6">{renderStep()}</main>
+      <main className="mx-auto w-full max-w-md overflow-x-hidden overflow-y-auto px-4 pt-4">
+        <motion.div
+          key={step}
+          className="h-full"
+          initial={reduced ? false : { opacity: 0, x: direction * 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {renderStep()}
+        </motion.div>
+      </main>
 
       <div className="mx-auto w-full max-w-md px-4 pt-3 pb-4">
         {saveFailed && (
@@ -133,25 +191,14 @@ export function OnboardingFlow() {
             Something went wrong while saving. Please try again.
           </p>
         )}
-        {isFirst ? (
-          <Button fullWidth onClick={() => goTo(1)}>
-            Get started
-          </Button>
-        ) : (
-          <div className="flex gap-3">
-            <Button variant="ghost" disabled={saving} onClick={() => goTo(stepIndex - 1)}>
-              Back
-            </Button>
-            <Button
-              fullWidth
-              disabled={!ready}
-              loading={saving}
-              onClick={() => (isLast ? void finish() : goTo(stepIndex + 1))}
-            >
-              {isLast ? "Start using Isza" : "Next"}
-            </Button>
-          </div>
-        )}
+        <Button
+          fullWidth
+          disabled={!isFirst && !ready}
+          loading={saving}
+          onClick={() => (isLast ? void finish() : goTo(stepIndex + 1))}
+        >
+          {isFirst ? "Get started" : isLast ? "Start using Iszacycle" : "Next"}
+        </Button>
       </div>
     </div>
   );

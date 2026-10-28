@@ -55,7 +55,12 @@
   --danger: #C53030;
   --scrim: rgba(31, 26, 28, 0.4);
   --edge: transparent;
+  /* The soft floor shadow under the mascot. No frame or glow around her. */
+  --mascot-shadow: rgba(31, 26, 28, 0.22);
   --mascot-glow: none;
+  /* The calendar's fertile band, and the date numbers on it. Over --bg the band is #F3E2CD: ink 7.09:1. */
+  --fertile-band: color-mix(in srgb, var(--phase-ovulatory) 18%, transparent);
+  --fertile-ink: #6B3F05;
   --elevation-card: 0 6px 24px rgba(31, 26, 28, 0.06);
   --elevation-raised: 0 12px 32px rgba(31, 26, 28, 0.1);
 }
@@ -81,7 +86,11 @@
     --danger: #DB6969;
     --scrim: rgba(0, 0, 0, 0.6);
     --edge: var(--line);
+    --mascot-shadow: rgba(255, 255, 255, 0.14);
     --mascot-glow: drop-shadow(0 0 12px rgba(255, 255, 255, 0.08));
+    /* Over --bg the band is #392712: ink 9.94:1. */
+    --fertile-band: color-mix(in srgb, var(--phase-ovulatory) 22%, transparent);
+    --fertile-ink: #FFD089;
     --elevation-card: none;
     --elevation-raised: none;
   }
@@ -107,7 +116,10 @@
   --danger: #DB6969;
   --scrim: rgba(0, 0, 0, 0.6);
   --edge: var(--line);
+  --mascot-shadow: rgba(255, 255, 255, 0.14);
   --mascot-glow: drop-shadow(0 0 12px rgba(255, 255, 255, 0.08));
+  --fertile-band: color-mix(in srgb, var(--phase-ovulatory) 22%, transparent);
+  --fertile-ink: #FFD089;
   --elevation-card: none;
   --elevation-raised: none;
 }
@@ -126,6 +138,11 @@
   --color-period: var(--period);
   --color-on-period: var(--on-period);
   --color-period-tint: color-mix(in srgb, var(--period) 12%, transparent);
+  --color-primary-tint: color-mix(in srgb, var(--primary) 14%, transparent);
+  /* Frosted glass for the toast: the surface, see-through, over a blurred page. The edge is a hairline of ink,
+     a soft highlight in dark mode. Where blur or transparency is off, the toast uses plain --surface instead. */
+  --color-glass: color-mix(in srgb, var(--surface) 72%, transparent);
+  --color-glass-edge: color-mix(in srgb, var(--ink) 10%, transparent);
   --color-selected-bg: var(--selected-bg);
   --color-selected-ink: var(--selected-ink);
   --color-scrim: var(--scrim);
@@ -147,6 +164,8 @@
   --color-phase-ovulatory-surface: color-mix(in srgb, var(--phase-ovulatory) 14%, var(--surface));
   --color-phase-luteal-surface: color-mix(in srgb, var(--phase-luteal) 14%, var(--surface));
   --color-ring-track: var(--ring-track);
+  --color-fertile-band: var(--fertile-band);
+  --color-fertile-ink: var(--fertile-ink);
 
   --font-*: initial;
   --font-sans: var(--font-plus-jakarta-sans);
@@ -222,10 +241,12 @@
   }
 }
 
+/* Slides in from the edge it sits on: down from the top on phones and tablets (--toast-from: -8px), up from the
+   bottom on desktop. */
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(var(--toast-from, 8px));
   }
 }
 

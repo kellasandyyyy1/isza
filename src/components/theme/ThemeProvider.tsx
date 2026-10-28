@@ -3,7 +3,7 @@
 import { createContext, useContext, useLayoutEffect, useSyncExternalStore, type ReactNode } from "react";
 import { THEME_STORAGE_KEY, parseThemePreference, type ThemePreference } from "@/lib/theme";
 
-const THEME_CHANGE_EVENT = "isza-theme-change";
+const THEME_CHANGE_EVENT = "iszacycle-theme-change";
 
 function readPreference(): ThemePreference {
   try {
