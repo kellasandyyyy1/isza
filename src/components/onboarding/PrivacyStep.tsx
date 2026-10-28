@@ -28,7 +28,7 @@ export function PrivacyStep({ answers, onChange, headingId }: StepProps) {
             A little fun fact
           </h2>
           <p className="text-small text-ink">
-            Iszacycle is named after my girlfriend. I made it for her, so tracking feels easy and stress feels lighter.
+            Iszacycle is named after my girlfriend. I made it for her, so tracking feels easy and stress lighter.
           </p>
           <p className="text-small text-ink">The mascot is based on her, in her favorite black gym outfit.</p>
           <p className="text-small text-ink">It is also for every woman who wants to understand her body better.</p>

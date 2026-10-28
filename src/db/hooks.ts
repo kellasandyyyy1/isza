@@ -97,9 +97,10 @@ export function useWaterLogs(from: string, to: string): WaterLog[] | undefined {
 export function useMealData(
   from: string,
   to: string,
-): { settings: MealSettings; history: MealHistoryEntry[] } | undefined {
+): { settings: MealSettings; history: MealHistoryEntry[]; to: string } | undefined {
+  // "to" says which window the result is for: while a new window loads, the previous result is still returned.
   return useLiveQuery(
-    async () => ({ settings: await getMealSettings(), history: await listMealHistory(from, to) }),
+    async () => ({ settings: await getMealSettings(), history: await listMealHistory(from, to), to }),
     [from, to],
   );
 }

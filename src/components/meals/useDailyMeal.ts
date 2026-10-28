@@ -54,7 +54,10 @@ export function useDailyMeal(cycle: CycleState | null, day: string | null): Dail
   const history = data?.history;
   const logged = useRef<string | null>(null);
 
-  const ready = settings !== undefined && history !== undefined && cycleState !== null && day !== null;
+  // Only today's own window counts: a result still held from an earlier date (the placeholder while the caller
+  // loads) would pick and log a meal from the wrong history.
+  const ready =
+    settings !== undefined && history !== undefined && data?.to === today && cycleState !== null && day !== null;
   const todayRows = ready ? history.filter((row) => row.date === today) : [];
   const skippedToday = todayRows.filter((row) => row.action === "skipped").map((row) => row.mealId);
   // The day's last row is its meal, unless that row is a skip: then a new one is picked.
